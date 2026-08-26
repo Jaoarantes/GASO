@@ -1,2 +1,0 @@
-# GASO
-GASO
