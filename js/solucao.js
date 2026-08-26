@@ -56,7 +56,10 @@ function renderizarAnexos(anexos) {
 function renderizarSolucao(dados) {
   conteudoEl.innerHTML = `
     <div class="form-card">
-      <h1 class="page__title">${dados.titulo || "Sem título"}</h1>
+      <div class="solucao-detalhe__header">
+        <h1 class="page__title">${dados.titulo || "Sem título"}</h1>
+        <a class="btn-secundario" href="nova-solucao.html?id=${dados.id}">Editar solução</a>
+      </div>
 
       <div class="form-group">
         <label class="form-label">Autor</label>

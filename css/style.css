@@ -230,6 +230,18 @@ body {
   padding-left: 16px;
 }
 
+.solucao-detalhe__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  grid-column: 1 / -1;
+}
+
+.solucao-detalhe__header .page__title {
+  grid-column: auto;
+}
+
 .page__title::before {
   content: "";
   position: absolute;
@@ -305,9 +317,38 @@ body {
 }
 
 .anexos__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 13px;
   font-weight: 500;
   color: var(--cor-texto-suave);
+}
+
+.anexo-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--cor-fundo);
+  border-radius: 6px;
+  padding: 4px 6px 4px 10px;
+  font-size: 13px;
+}
+
+.anexo-tag__remover {
+  border: none;
+  background: none;
+  color: #c62828;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.anexo-tag__remover:hover {
+  background-color: rgba(198, 40, 40, 0.12);
 }
 
 .form-status {

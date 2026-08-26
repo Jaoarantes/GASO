@@ -24,7 +24,7 @@
 
   <main class="page">
     <form class="form-card" id="nova-solucao-form" novalidate>
-      <h1 class="page__title">Nova Solução</h1>
+      <h1 class="page__title" id="page-titulo">Nova Solução</h1>
 
       <div class="form-group">
         <label class="form-label" for="titulo">Título</label>
@@ -52,7 +52,7 @@
         <label class="form-label">Anexar arquivos</label>
         <div class="anexos">
           <button class="btn-secundario" type="button" id="anexos-btn">Escolher arquivos</button>
-          <p class="anexos__lista" id="anexos-lista">Nenhum arquivo selecionado</p>
+          <div class="anexos__lista" id="anexos-lista"></div>
           <input class="form-file" type="file" id="anexos" name="anexos" multiple hidden>
         </div>
       </div>

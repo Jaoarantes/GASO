@@ -1,6 +1,9 @@
 import { supabase } from "./supabase-config.js";
 
+const solucaoIdEdicao = new URLSearchParams(window.location.search).get("id");
+
 const form = document.getElementById("nova-solucao-form");
+const pageTitleEl = document.getElementById("page-titulo");
 const tituloInput = document.getElementById("titulo");
 const erroInput = document.getElementById("erro");
 const anexosInput = document.getElementById("anexos");
@@ -28,42 +31,52 @@ function ajustarAltura(textarea) {
   textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
+function criarItemImagem(src, alt, aoRemover) {
+  const item = document.createElement("div");
+  item.className = "passo__imagem-item";
+
+  const preview = document.createElement("img");
+  preview.className = "passo__imagem-preview";
+  preview.src = src;
+  preview.alt = alt || "Imagem";
+
+  const removerBtn = document.createElement("button");
+  removerBtn.type = "button";
+  removerBtn.className = "passo__imagem-item-remover";
+  removerBtn.setAttribute("aria-label", "Remover imagem");
+  removerBtn.textContent = "×";
+  removerBtn.addEventListener("click", aoRemover);
+
+  item.appendChild(preview);
+  item.appendChild(removerBtn);
+  return item;
+}
+
 function atualizarListaImagens(zonaEl) {
   const listaEl = zonaEl.querySelector(".passo__imagem-lista");
-  const imagens = zonaEl._imagens;
-
   listaEl.innerHTML = "";
-  imagens.forEach((arquivo, indice) => {
-    const item = document.createElement("div");
-    item.className = "passo__imagem-item";
 
-    const preview = document.createElement("img");
-    preview.className = "passo__imagem-preview";
-    preview.src = URL.createObjectURL(arquivo);
-    preview.alt = arquivo.name || `Imagem ${indice + 1}`;
-
-    const removerBtn = document.createElement("button");
-    removerBtn.type = "button";
-    removerBtn.className = "passo__imagem-item-remover";
-    removerBtn.setAttribute("aria-label", "Remover imagem");
-    removerBtn.textContent = "×";
-    removerBtn.addEventListener("click", () => {
-      imagens.splice(indice, 1);
+  zonaEl._imagensExistentes.forEach((imagem, indice) => {
+    listaEl.appendChild(criarItemImagem(imagem.url, imagem.nome, () => {
+      zonaEl._imagensExistentes.splice(indice, 1);
       atualizarListaImagens(zonaEl);
-    });
+    }));
+  });
 
-    item.appendChild(preview);
-    item.appendChild(removerBtn);
-    listaEl.appendChild(item);
+  zonaEl._imagensNovas.forEach((arquivo, indice) => {
+    listaEl.appendChild(criarItemImagem(URL.createObjectURL(arquivo), arquivo.name, () => {
+      zonaEl._imagensNovas.splice(indice, 1);
+      atualizarListaImagens(zonaEl);
+    }));
   });
 }
 
 function adicionarImagens(zonaEl, novosArquivos) {
-  zonaEl._imagens.push(...novosArquivos);
+  zonaEl._imagensNovas.push(...novosArquivos);
   atualizarListaImagens(zonaEl);
 }
 
-function criarPasso() {
+function criarPasso(dadosIniciais = {}) {
   const passoEl = document.createElement("div");
   passoEl.className = "passo";
   passoEl.innerHTML = `
@@ -89,14 +102,22 @@ function criarPasso() {
     </div>
   `;
 
+  const acaoInput = passoEl.querySelector(".passo__acao");
+  const comoInput = passoEl.querySelector(".passo__como");
+  acaoInput.value = dadosIniciais.acao || "";
+  comoInput.value = dadosIniciais.comoFazer || "";
+
   const zonaEl = passoEl.querySelector(".passo__imagem-zone");
   const inputImagemEl = passoEl.querySelector(".passo__imagem-input");
   const selecionarBtn = passoEl.querySelector(".passo__imagem-btn");
-  zonaEl._imagens = [];
+  zonaEl._imagensExistentes = dadosIniciais.imagens ? [...dadosIniciais.imagens] : [];
+  zonaEl._imagensNovas = [];
   atualizarListaImagens(zonaEl);
 
-  const comoInput = passoEl.querySelector(".passo__como");
   comoInput.addEventListener("input", () => ajustarAltura(comoInput));
+  if (dadosIniciais.comoFazer) {
+    requestAnimationFrame(() => ajustarAltura(comoInput));
+  }
 
   comoInput.addEventListener("paste", (event) => {
     const item = Array.from(event.clipboardData.items).find((i) => i.type.startsWith("image/"));
@@ -121,16 +142,59 @@ function criarPasso() {
   renumerarPassos();
 }
 
-addPassoBtn.addEventListener("click", criarPasso);
+addPassoBtn.addEventListener("click", () => criarPasso());
 criarPasso();
+
+let anexosExistentes = [];
+let anexosNovos = [];
+
+function criarTagAnexo(nome, aoRemover) {
+  const tag = document.createElement("span");
+  tag.className = "anexo-tag";
+  tag.append(nome);
+
+  const removerBtn = document.createElement("button");
+  removerBtn.type = "button";
+  removerBtn.className = "anexo-tag__remover";
+  removerBtn.setAttribute("aria-label", "Remover anexo");
+  removerBtn.textContent = "×";
+  removerBtn.addEventListener("click", aoRemover);
+
+  tag.appendChild(removerBtn);
+  return tag;
+}
+
+function atualizarAnexosLista() {
+  anexosLista.innerHTML = "";
+
+  if (anexosExistentes.length === 0 && anexosNovos.length === 0) {
+    anexosLista.textContent = "Nenhum arquivo selecionado";
+    return;
+  }
+
+  anexosExistentes.forEach((anexo, indice) => {
+    anexosLista.appendChild(criarTagAnexo(anexo.nome, () => {
+      anexosExistentes.splice(indice, 1);
+      atualizarAnexosLista();
+    }));
+  });
+
+  anexosNovos.forEach((arquivo, indice) => {
+    anexosLista.appendChild(criarTagAnexo(arquivo.name, () => {
+      anexosNovos.splice(indice, 1);
+      atualizarAnexosLista();
+    }));
+  });
+}
+
+atualizarAnexosLista();
 
 anexosBtn.addEventListener("click", () => anexosInput.click());
 
 anexosInput.addEventListener("change", () => {
-  const arquivos = Array.from(anexosInput.files);
-  anexosLista.textContent = arquivos.length > 0
-    ? arquivos.map((arquivo) => arquivo.name).join(", ")
-    : "Nenhum arquivo selecionado";
+  anexosNovos.push(...Array.from(anexosInput.files));
+  anexosInput.value = "";
+  atualizarAnexosLista();
 });
 
 function comLimiteDeTempo(promessa, segundos) {
@@ -160,13 +224,15 @@ async function montarPassos(solucaoId) {
 
   return Promise.all(passosEl.map(async (passoEl, i) => {
     const zonaEl = passoEl.querySelector(".passo__imagem-zone");
-    const arquivosImagem = zonaEl._imagens || [];
+    const novasImagens = zonaEl._imagensNovas || [];
 
-    const imagens = await Promise.all(arquivosImagem.map(async (arquivo, j) => {
+    const imagensEnviadas = await Promise.all(novasImagens.map(async (arquivo, j) => {
       const nomeArquivo = `passo-${i + 1}-${j + 1}-${arquivo.name || "colada.png"}`;
       const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
       return { nome: arquivo.name || nomeArquivo, url };
     }));
+
+    const imagens = [...(zonaEl._imagensExistentes || []), ...imagensEnviadas];
 
     return {
       ordem: i + 1,
@@ -184,41 +250,83 @@ async function enviarAnexos(solucaoId, arquivos) {
   }));
 }
 
+async function carregarParaEdicao() {
+  const { data, error } = await supabase
+    .from("solucoes")
+    .select("*")
+    .eq("id", solucaoIdEdicao)
+    .single();
+
+  if (error || !data) {
+    mostrarStatus("Não foi possível carregar a solução para edição.", "erro");
+    return;
+  }
+
+  tituloInput.value = data.titulo || "";
+  autorInput.value = data.autor || "";
+  erroInput.value = data.erro || "";
+
+  passosContainer.querySelectorAll(".passo").forEach((el) => el.remove());
+  (data.passos || []).forEach((passo) => criarPasso(passo));
+  if (!passosContainer.querySelector(".passo")) {
+    criarPasso();
+  }
+
+  anexosExistentes = data.anexos ? [...data.anexos] : [];
+  atualizarAnexosLista();
+
+  pageTitleEl.textContent = "Editar Solução";
+  submitBtn.textContent = "Salvar alterações";
+}
+
+if (solucaoIdEdicao) {
+  carregarParaEdicao();
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   mostrarStatus("", null);
   submitBtn.disabled = true;
-  submitBtn.textContent = "Salvando...";
+  submitBtn.textContent = solucaoIdEdicao ? "Salvando alterações..." : "Salvando...";
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    const solucaoId = crypto.randomUUID();
+    const solucaoId = solucaoIdEdicao || crypto.randomUUID();
 
-    const arquivos = Array.from(anexosInput.files);
-
-    const [passos, anexos] = await Promise.all([
+    const [passos, anexosEnviados] = await Promise.all([
       montarPassos(solucaoId),
-      enviarAnexos(solucaoId, arquivos)
+      enviarAnexos(solucaoId, anexosNovos)
     ]);
 
-    const { error } = await supabase.from("solucoes").insert({
-      id: solucaoId,
+    const anexos = [...anexosExistentes, ...anexosEnviados];
+
+    const dadosSolucao = {
       titulo: tituloInput.value.trim(),
       erro: erroInput.value.trim(),
       autor: autorInput.value.trim(),
       passos,
-      anexos,
-      criado_por: user.id
-    });
+      anexos
+    };
 
-    if (error) throw error;
+    let erroSalvar;
+    if (solucaoIdEdicao) {
+      ({ error: erroSalvar } = await supabase.from("solucoes").update(dadosSolucao).eq("id", solucaoIdEdicao));
+    } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      ({ error: erroSalvar } = await supabase.from("solucoes").insert({
+        id: solucaoId,
+        ...dadosSolucao,
+        criado_por: user.id
+      }));
+    }
 
-    window.location.href = "solucoes.html";
+    if (erroSalvar) throw erroSalvar;
+
+    window.location.href = solucaoIdEdicao ? `solucao.html?id=${solucaoIdEdicao}` : "solucoes.html";
     return;
   } catch (erro) {
     mostrarStatus("Não foi possível salvar a solução. Tente novamente.", "erro");
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = "Salvar solução";
+    submitBtn.textContent = solucaoIdEdicao ? "Salvar alterações" : "Salvar solução";
   }
 });
