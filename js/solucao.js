@@ -58,7 +58,10 @@ function renderizarSolucao(dados) {
     <div class="form-card">
       <div class="solucao-detalhe__header">
         <h1 class="page__title">${dados.titulo || "Sem título"}</h1>
-        <a class="btn-secundario" href="nova-solucao.html?id=${dados.id}">Editar solução</a>
+        <div class="solucao-detalhe__acoes">
+          <a class="btn-secundario" href="nova-solucao.html?id=${dados.id}">Editar solução</a>
+          <button class="btn-excluir" type="button" id="excluir-solucao" data-id="${dados.id}">Excluir solução</button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -112,6 +115,34 @@ lightboxEl.addEventListener("click", (event) => {
   if (event.target === lightboxEl) {
     fecharLightbox();
   }
+});
+
+conteudoEl.addEventListener("click", async (event) => {
+  if (event.target.id !== "excluir-solucao") return;
+
+  const id = event.target.dataset.id;
+  const confirmado = window.confirm("Tem certeza que deseja excluir esta solução? Essa ação não pode ser desfeita.");
+  if (!confirmado) return;
+
+  event.target.disabled = true;
+  event.target.textContent = "Excluindo...";
+
+  const { data: arquivos } = await supabase.storage.from("solucoes").list(id);
+  if (arquivos && arquivos.length > 0) {
+    const caminhos = arquivos.map((arquivo) => `${id}/${arquivo.name}`);
+    await supabase.storage.from("solucoes").remove(caminhos);
+  }
+
+  const { error } = await supabase.from("solucoes").delete().eq("id", id);
+
+  if (error) {
+    window.alert("Não foi possível excluir a solução. Tente novamente.");
+    event.target.disabled = false;
+    event.target.textContent = "Excluir solução";
+    return;
+  }
+
+  window.location.href = "solucoes.html?excluido=1";
 });
 
 async function carregarSolucao() {

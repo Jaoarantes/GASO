@@ -242,6 +242,36 @@ body {
   grid-column: auto;
 }
 
+.solucao-detalhe__acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-excluir {
+  border: 1.5px solid #c62828;
+  background: none;
+  color: #c62828;
+  border-radius: var(--raio-sm);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.btn-excluir:hover {
+  background-color: rgba(198, 40, 40, 0.08);
+  transform: translateY(-1px);
+}
+
+.btn-excluir:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .page__title::before {
   content: "";
   position: absolute;

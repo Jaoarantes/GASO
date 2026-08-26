@@ -4,7 +4,13 @@ const listaEl = document.getElementById("solucoes-lista");
 const vazioEl = document.getElementById("solucoes-vazio");
 const avisoEditadoEl = document.getElementById("aviso-editado");
 
-if (new URLSearchParams(window.location.search).get("editado")) {
+const parametros = new URLSearchParams(window.location.search);
+if (parametros.get("editado")) {
+  avisoEditadoEl.textContent = "Solução editada com sucesso.";
+  avisoEditadoEl.hidden = false;
+  window.history.replaceState({}, "", "solucoes.html");
+} else if (parametros.get("excluido")) {
+  avisoEditadoEl.textContent = "Solução excluída com sucesso.";
   avisoEditadoEl.hidden = false;
   window.history.replaceState({}, "", "solucoes.html");
 }
