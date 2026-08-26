@@ -22,7 +22,43 @@
     </nav>
   </header>
 
+  <main class="page">
+    <form class="form-card" id="nova-solucao-form" novalidate>
+      <h1 class="page__title">Nova Solução</h1>
+
+      <div class="form-group">
+        <label class="form-label" for="titulo">Título</label>
+        <input class="form-input" type="text" id="titulo" name="titulo" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="erro">Erro</label>
+        <textarea class="form-textarea" id="erro" name="erro" rows="3" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="passo-a-passo">Passo a passo</label>
+        <textarea class="form-textarea" id="passo-a-passo" name="passo-a-passo" rows="6" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="anexos">Anexar arquivos</label>
+        <input class="form-file" type="file" id="anexos" name="anexos" multiple>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="autor">Autor</label>
+        <input class="form-input" type="text" id="autor" name="autor" required>
+      </div>
+
+      <p class="form-status" id="form-status"></p>
+
+      <button class="form-btn" type="submit" id="form-submit">Salvar solução</button>
+    </form>
+  </main>
+
   <script type="module" src="js/auth-guard.js"></script>
   <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/nova-solucao.js"></script>
 </body>
 </html>
