@@ -144,9 +144,18 @@ anexosInput.addEventListener("change", () => {
     : "Nenhum arquivo selecionado";
 });
 
+function comLimiteDeTempo(promessa, segundos) {
+  return Promise.race([
+    promessa,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Tempo esgotado ao enviar arquivo.")), segundos * 1000);
+    })
+  ]);
+}
+
 async function enviarArquivo(solucaoId, nomeArquivo, arquivo) {
   const arquivoRef = ref(storage, `solucoes/${solucaoId}/${nomeArquivo}`);
-  await uploadBytes(arquivoRef, arquivo);
+  await comLimiteDeTempo(uploadBytes(arquivoRef, arquivo), 15);
   return getDownloadURL(arquivoRef);
 }
 
