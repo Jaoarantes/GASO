@@ -210,7 +210,7 @@ async function enviarArquivo(solucaoId, nomeArquivo, arquivo) {
   const caminho = `${solucaoId}/${nomeArquivo}`;
 
   const { error } = await comLimiteDeTempo(
-    supabase.storage.from("solucoes").upload(caminho, arquivo),
+    supabase.storage.from("solucoes").upload(caminho, arquivo, { upsert: true }),
     15
   );
   if (error) throw error;
@@ -324,6 +324,7 @@ form.addEventListener("submit", async (event) => {
     window.location.href = solucaoIdEdicao ? `solucao.html?id=${solucaoIdEdicao}` : "solucoes.html";
     return;
   } catch (erro) {
+    console.error("Erro ao salvar solução:", erro);
     mostrarStatus("Não foi possível salvar a solução. Tente novamente.", "erro");
   } finally {
     submitBtn.disabled = false;
