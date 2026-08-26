@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Base de soluções</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <a class="navbar__logo" href="index.html">
+      <img src="assets/img/logo-claro.svg" alt="Gasometro">
+    </a>
+  </header>
+
+  <main class="login">
+    <form class="login__card" id="login-form" novalidate>
+      <h1 class="login__title">Entrar</h1>
+
+      <label class="login__label" for="email">E-mail</label>
+      <input class="login__input" type="email" id="email" name="email" autocomplete="username" required>
+
+      <label class="login__label" for="senha">Senha</label>
+      <input class="login__input" type="password" id="senha" name="senha" autocomplete="current-password" required>
+
+      <p class="login__error" id="login-error"></p>
+
+      <button class="login__btn" type="submit">Entrar</button>
+
+      <div class="login__divider"><span>ou</span></div>
+
+      <button class="login__btn login__btn--google" type="button" id="google-btn">
+        Entrar com Google
+      </button>
+    </form>
+  </main>
+
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>
