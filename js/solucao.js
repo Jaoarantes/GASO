@@ -12,9 +12,7 @@ function renderizarGaleria(imagens) {
 
   const itens = imagens
     .map((img) => `
-      <a href="${img.url}" target="_blank" rel="noopener">
-        <img class="solucao-passo__imagem" src="${img.url}" alt="${img.nome || "Imagem do passo"}">
-      </a>
+      <img class="solucao-passo__imagem" src="${img.url}" alt="${img.nome || "Imagem do passo"}">
     `)
     .join("");
 
@@ -84,6 +82,32 @@ function renderizarSolucao(dados) {
     </div>
   `;
 }
+
+const lightboxEl = document.getElementById("lightbox");
+const lightboxImgEl = document.getElementById("lightbox-img");
+
+function abrirLightbox(url, alt) {
+  lightboxImgEl.src = url;
+  lightboxImgEl.alt = alt || "Imagem ampliada";
+  lightboxEl.hidden = false;
+}
+
+function fecharLightbox() {
+  lightboxEl.hidden = true;
+  lightboxImgEl.src = "";
+}
+
+conteudoEl.addEventListener("click", (event) => {
+  if (event.target.classList.contains("solucao-passo__imagem")) {
+    abrirLightbox(event.target.src, event.target.alt);
+  }
+});
+
+lightboxEl.addEventListener("click", (event) => {
+  if (event.target === lightboxEl) {
+    fecharLightbox();
+  }
+});
 
 async function carregarSolucao() {
   const id = new URLSearchParams(window.location.search).get("id");

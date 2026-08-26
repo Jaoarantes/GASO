@@ -625,6 +625,33 @@ body {
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid var(--cor-borda);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.solucao-passo__imagem:hover {
+  transform: scale(1.03);
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+}
+
+.lightbox[hidden] {
+  display: none;
+}
+
+.lightbox__img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .solucao-anexos {
