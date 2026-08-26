@@ -152,41 +152,31 @@ async function enviarArquivo(solucaoId, nomeArquivo, arquivo) {
 
 async function montarPassos(solucaoId) {
   const passosEl = Array.from(passosContainer.querySelectorAll(".passo"));
-  const passos = [];
 
-  for (let i = 0; i < passosEl.length; i++) {
-    const passoEl = passosEl[i];
+  return Promise.all(passosEl.map(async (passoEl, i) => {
     const zonaEl = passoEl.querySelector(".passo__imagem-zone");
     const arquivosImagem = zonaEl._imagens || [];
 
-    const imagens = [];
-    for (let j = 0; j < arquivosImagem.length; j++) {
-      const arquivo = arquivosImagem[j];
+    const imagens = await Promise.all(arquivosImagem.map(async (arquivo, j) => {
       const nomeArquivo = `passo-${i + 1}-${j + 1}-${arquivo.name || "colada.png"}`;
       const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
-      imagens.push({ nome: arquivo.name || nomeArquivo, url });
-    }
+      return { nome: arquivo.name || nomeArquivo, url };
+    }));
 
-    passos.push({
+    return {
       ordem: i + 1,
       acao: passoEl.querySelector(".passo__acao").value.trim(),
       comoFazer: passoEl.querySelector(".passo__como").value.trim(),
       imagens
-    });
-  }
-
-  return passos;
+    };
+  }));
 }
 
 async function enviarAnexos(solucaoId, arquivos) {
-  const anexos = [];
-
-  for (const arquivo of arquivos) {
+  return Promise.all(arquivos.map(async (arquivo) => {
     const url = await enviarArquivo(solucaoId, arquivo.name, arquivo);
-    anexos.push({ nome: arquivo.name, url });
-  }
-
-  return anexos;
+    return { nome: arquivo.name, url };
+  }));
 }
 
 form.addEventListener("submit", async (event) => {
@@ -206,23 +196,17 @@ form.addEventListener("submit", async (event) => {
       criadoEm: serverTimestamp()
     });
 
-    mostrarStatus("Enviando imagens dos passos...", null);
-    const passos = await montarPassos(docRef.id);
-
     const arquivos = Array.from(anexosInput.files);
-    let anexos = [];
-    if (arquivos.length > 0) {
-      mostrarStatus("Enviando anexos...", null);
-      anexos = await enviarAnexos(docRef.id, arquivos);
-    }
+
+    const [passos, anexos] = await Promise.all([
+      montarPassos(docRef.id),
+      enviarAnexos(docRef.id, arquivos)
+    ]);
 
     await updateDoc(docRef, { passos, anexos });
 
-    mostrarStatus("Solução salva com sucesso.", "sucesso");
-    form.reset();
-    anexosLista.textContent = "Nenhum arquivo selecionado";
-    passosContainer.querySelectorAll(".passo").forEach((passoEl) => passoEl.remove());
-    criarPasso();
+    window.location.href = "solucoes.html";
+    return;
   } catch (erro) {
     mostrarStatus("Não foi possível salvar a solução. Tente novamente.", "erro");
   } finally {
