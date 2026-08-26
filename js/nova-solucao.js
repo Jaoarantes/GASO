@@ -210,7 +210,7 @@ async function enviarArquivo(solucaoId, nomeArquivo, arquivo) {
   const caminho = `${solucaoId}/${nomeArquivo}`;
 
   const { error } = await comLimiteDeTempo(
-    supabase.storage.from("solucoes").upload(caminho, arquivo, { upsert: true }),
+    supabase.storage.from("solucoes").upload(caminho, arquivo),
     15
   );
   if (error) throw error;
@@ -227,7 +227,7 @@ async function montarPassos(solucaoId) {
     const novasImagens = zonaEl._imagensNovas || [];
 
     const imagensEnviadas = await Promise.all(novasImagens.map(async (arquivo, j) => {
-      const nomeArquivo = `passo-${i + 1}-${j + 1}-${arquivo.name || "colada.png"}`;
+      const nomeArquivo = `passo-${i + 1}-${j + 1}-${Date.now()}-${arquivo.name || "colada.png"}`;
       const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
       return { nome: arquivo.name || nomeArquivo, url };
     }));
@@ -244,8 +244,9 @@ async function montarPassos(solucaoId) {
 }
 
 async function enviarAnexos(solucaoId, arquivos) {
-  return Promise.all(arquivos.map(async (arquivo) => {
-    const url = await enviarArquivo(solucaoId, arquivo.name, arquivo);
+  return Promise.all(arquivos.map(async (arquivo, indice) => {
+    const nomeArquivo = `${Date.now()}-${indice + 1}-${arquivo.name}`;
+    const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
     return { nome: arquivo.name, url };
   }));
 }
