@@ -90,11 +90,13 @@ function abrirLightbox(url, alt) {
   lightboxImgEl.src = url;
   lightboxImgEl.alt = alt || "Imagem ampliada";
   lightboxEl.hidden = false;
+  document.body.style.overflow = "hidden";
 }
 
 function fecharLightbox() {
   lightboxEl.hidden = true;
   lightboxImgEl.src = "";
+  document.body.style.overflow = "";
 }
 
 conteudoEl.addEventListener("click", (event) => {
