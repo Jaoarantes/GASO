@@ -35,8 +35,10 @@ function renumerarPassos() {
 function mostrarImagemNaZona(zonaEl, arquivo) {
   const preview = zonaEl.querySelector(".passo__imagem-preview");
   const dica = zonaEl.querySelector(".passo__imagem-dica");
+  const icone = zonaEl.querySelector(".passo__imagem-icone");
   preview.src = URL.createObjectURL(arquivo);
   preview.hidden = false;
+  icone.hidden = true;
   dica.textContent = arquivo.name || "Imagem colada";
   zonaEl._imagemArquivo = arquivo;
 }
@@ -60,6 +62,11 @@ function criarPasso() {
     <div class="passo__campo">
       <label class="form-label">Imagem</label>
       <div class="passo__imagem-zone" tabindex="0">
+        <svg class="passo__imagem-icone" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <circle cx="8.5" cy="9.5" r="1.5"/>
+          <path d="M21 15l-5-5-9 9"/>
+        </svg>
         <p class="passo__imagem-dica">Clique para selecionar ou cole com Ctrl+V</p>
         <img class="passo__imagem-preview" hidden alt="Prévia da imagem do passo">
         <input class="passo__imagem-input" type="file" accept="image/*" hidden>
