@@ -427,19 +427,20 @@ body {
 }
 
 .passo__remover {
-  border: none;
+  border: 1.5px solid #c62828;
   background: none;
   color: #c62828;
   font-size: 13px;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 6px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--raio-sm);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
 .passo__remover:hover {
   background-color: rgba(198, 40, 40, 0.08);
+  transform: translateY(-1px);
 }
 
 .passo__como {
@@ -458,36 +459,8 @@ body {
 .passo__imagem-zone {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
   gap: 10px;
-  border: 1.5px dashed var(--cor-borda);
-  border-radius: var(--raio-sm);
-  padding: 24px 16px;
-  text-align: center;
-  background-color: #fafbfc;
-  outline: none;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.passo__imagem-zone:focus,
-.passo__imagem-zone:hover {
-  border-color: var(--cor-primaria);
-  background-color: var(--cor-primaria-suave);
-}
-
-.passo__imagem-icone {
-  color: var(--cor-texto-suave);
-}
-
-.passo__imagem-zone:focus .passo__imagem-icone,
-.passo__imagem-zone:hover .passo__imagem-icone {
-  color: var(--cor-primaria);
-}
-
-.passo__imagem-dica {
-  font-size: 13px;
-  color: var(--cor-texto-suave);
 }
 
 .passo__imagem-preview {

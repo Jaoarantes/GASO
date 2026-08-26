@@ -39,18 +39,12 @@ function ajustarAltura(textarea) {
   textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
-const DICA_PADRAO = "Cole uma imagem com Ctrl+V ou";
-
 function mostrarImagemNaZona(zonaEl, arquivo) {
   const preview = zonaEl.querySelector(".passo__imagem-preview");
-  const dica = zonaEl.querySelector(".passo__imagem-dica");
-  const icone = zonaEl.querySelector(".passo__imagem-icone");
   const removerBtn = zonaEl.querySelector(".passo__imagem-remover");
   const selecionarBtn = zonaEl.querySelector(".passo__imagem-btn");
   preview.src = URL.createObjectURL(arquivo);
   preview.hidden = false;
-  icone.hidden = true;
-  dica.textContent = arquivo.name || "Imagem colada";
   selecionarBtn.hidden = true;
   removerBtn.hidden = false;
   zonaEl._imagemArquivo = arquivo;
@@ -58,16 +52,12 @@ function mostrarImagemNaZona(zonaEl, arquivo) {
 
 function removerImagemDaZona(zonaEl) {
   const preview = zonaEl.querySelector(".passo__imagem-preview");
-  const dica = zonaEl.querySelector(".passo__imagem-dica");
-  const icone = zonaEl.querySelector(".passo__imagem-icone");
   const removerBtn = zonaEl.querySelector(".passo__imagem-remover");
   const selecionarBtn = zonaEl.querySelector(".passo__imagem-btn");
   const inputImagemEl = zonaEl.querySelector(".passo__imagem-input");
 
   preview.src = "";
   preview.hidden = true;
-  icone.hidden = false;
-  dica.textContent = DICA_PADRAO;
   selecionarBtn.hidden = false;
   removerBtn.hidden = true;
   inputImagemEl.value = "";
@@ -92,14 +82,8 @@ function criarPasso() {
     </div>
     <div class="passo__campo">
       <label class="form-label">Imagem</label>
-      <div class="passo__imagem-zone" tabindex="0">
-        <svg class="passo__imagem-icone" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="3"/>
-          <circle cx="8.5" cy="9.5" r="1.5"/>
-          <path d="M21 15l-5-5-9 9"/>
-        </svg>
-        <p class="passo__imagem-dica">Cole uma imagem com Ctrl+V ou</p>
-        <button class="btn-secundario passo__imagem-btn" type="button">Selecionar imagem</button>
+      <div class="passo__imagem-zone">
+        <button class="btn-secundario passo__imagem-btn" type="button">Adicionar imagem</button>
         <img class="passo__imagem-preview" hidden alt="Prévia da imagem do passo">
         <button class="passo__imagem-remover" type="button" hidden>Remover imagem</button>
         <input class="passo__imagem-input" type="file" accept="image/*" hidden>
@@ -107,13 +91,21 @@ function criarPasso() {
     </div>
   `;
 
-  const comoInput = passoEl.querySelector(".passo__como");
-  comoInput.addEventListener("input", () => ajustarAltura(comoInput));
-
   const zonaEl = passoEl.querySelector(".passo__imagem-zone");
   const inputImagemEl = passoEl.querySelector(".passo__imagem-input");
   const selecionarBtn = passoEl.querySelector(".passo__imagem-btn");
   const removerImagemBtn = passoEl.querySelector(".passo__imagem-remover");
+
+  const comoInput = passoEl.querySelector(".passo__como");
+  comoInput.addEventListener("input", () => ajustarAltura(comoInput));
+
+  comoInput.addEventListener("paste", (event) => {
+    const item = Array.from(event.clipboardData.items).find((i) => i.type.startsWith("image/"));
+    if (!item) return;
+    event.preventDefault();
+    const arquivo = item.getAsFile();
+    mostrarImagemNaZona(zonaEl, arquivo);
+  });
 
   selecionarBtn.addEventListener("click", () => inputImagemEl.click());
 
@@ -122,13 +114,6 @@ function criarPasso() {
   inputImagemEl.addEventListener("change", () => {
     const arquivo = inputImagemEl.files[0];
     if (arquivo) mostrarImagemNaZona(zonaEl, arquivo);
-  });
-
-  zonaEl.addEventListener("paste", (event) => {
-    const item = Array.from(event.clipboardData.items).find((i) => i.type.startsWith("image/"));
-    if (!item) return;
-    const arquivo = item.getAsFile();
-    mostrarImagemNaZona(zonaEl, arquivo);
   });
 
   passoEl.querySelector(".passo__remover").addEventListener("click", () => {
