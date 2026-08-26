@@ -263,17 +263,6 @@ body {
   cursor: not-allowed;
 }
 
-.form-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.form-label-row .form-label {
-  margin-bottom: 0;
-}
-
 .btn-secundario {
   border: 1px solid #e84e0e;
   background: none;
@@ -296,6 +285,10 @@ body {
   gap: 16px;
 }
 
+.passos .btn-secundario {
+  align-self: flex-start;
+}
+
 .passo {
   border: 1px solid #e4e5e9;
   border-radius: 10px;
@@ -311,9 +304,16 @@ body {
 }
 
 .passo__numero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #e84e0e;
+  border-radius: 50%;
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #e84e0e;
 }
 
 .passo__remover {

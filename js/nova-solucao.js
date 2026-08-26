@@ -28,7 +28,7 @@ function mostrarStatus(mensagem, tipo) {
 
 function renumerarPassos() {
   passosContainer.querySelectorAll(".passo").forEach((passoEl, indice) => {
-    passoEl.querySelector(".passo__numero").textContent = `Passo ${indice + 1}`;
+    passoEl.querySelector(".passo__numero").textContent = indice + 1;
   });
 }
 
@@ -46,7 +46,7 @@ function criarPasso() {
   passoEl.className = "passo";
   passoEl.innerHTML = `
     <div class="passo__header">
-      <span class="passo__numero">Passo</span>
+      <span class="passo__numero"></span>
       <button class="passo__remover" type="button">Remover</button>
     </div>
     <div class="passo__campo">
@@ -89,7 +89,7 @@ function criarPasso() {
     renumerarPassos();
   });
 
-  passosContainer.appendChild(passoEl);
+  passosContainer.insertBefore(passoEl, addPassoBtn);
   renumerarPassos();
 }
 
@@ -170,7 +170,7 @@ form.addEventListener("submit", async (event) => {
 
     mostrarStatus("Solução salva com sucesso.", "sucesso");
     form.reset();
-    passosContainer.innerHTML = "";
+    passosContainer.querySelectorAll(".passo").forEach((passoEl) => passoEl.remove());
     criarPasso();
   } catch (erro) {
     mostrarStatus("Não foi possível salvar a solução. Tente novamente.", "erro");
