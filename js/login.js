@@ -1,5 +1,4 @@
-import { auth } from "./firebase-config.js";
-import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import { supabase } from "./supabase-config.js";
 
 const form = document.getElementById("login-form");
 const usuarioInput = document.getElementById("login-usuario");
@@ -7,9 +6,9 @@ const senhaInput = document.getElementById("senha");
 const errorEl = document.getElementById("login-error");
 const toggleSenhaBtn = document.getElementById("toggle-senha");
 
-// O Firebase Authentication só autentica por e-mail. Para o usuário digitar
+// O Supabase Authentication só autentica por e-mail. Para o usuário digitar
 // apenas um "login" (sem e-mail), convertemos para um e-mail fixo interno
-// antes de enviar ao Firebase. Ao criar a conta no console, cadastre também
+// antes de enviar ao Supabase. Ao criar a conta no painel, cadastre também
 // nesse formato: <login>@gasosolucoes.local
 const DOMINIO_LOGIN = "@gasosolucoes.local";
 
@@ -17,27 +16,31 @@ function paraEmail(login) {
   return login.trim().toLowerCase() + DOMINIO_LOGIN;
 }
 
-function mostrarErro(codigo) {
-  const mensagens = {
-    "auth/invalid-email": "Login inválido.",
-    "auth/invalid-credential": "Login ou senha incorretos.",
-    "auth/user-not-found": "Login ou senha incorretos.",
-    "auth/wrong-password": "Login ou senha incorretos.",
-    "auth/too-many-requests": "Muitas tentativas. Aguarde um momento e tente novamente."
-  };
-  errorEl.textContent = mensagens[codigo] || "Não foi possível entrar. Tente novamente.";
+function mostrarErro(mensagem) {
+  if (mensagem && mensagem.includes("Invalid login credentials")) {
+    errorEl.textContent = "Login ou senha incorretos.";
+  } else if (mensagem && mensagem.includes("Email not confirmed")) {
+    errorEl.textContent = "Conta não confirmada. Fale com o administrador.";
+  } else {
+    errorEl.textContent = "Não foi possível entrar. Tente novamente.";
+  }
 }
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   errorEl.textContent = "";
 
-  try {
-    await signInWithEmailAndPassword(auth, paraEmail(usuarioInput.value), senhaInput.value);
-    window.location.href = "index.html";
-  } catch (erro) {
-    mostrarErro(erro.code);
+  const { error } = await supabase.auth.signInWithPassword({
+    email: paraEmail(usuarioInput.value),
+    password: senhaInput.value
+  });
+
+  if (error) {
+    mostrarErro(error.message);
+    return;
   }
+
+  window.location.href = "index.html";
 });
 
 const ICONE_OLHO = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;

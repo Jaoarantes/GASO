@@ -1,10 +1,15 @@
-import { auth } from "./firebase-config.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import { supabase } from "./supabase-config.js";
 
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
+const { data: { session } } = await supabase.auth.getSession();
+
+if (!session) {
+  window.location.href = "login.html";
+} else {
   document.body.style.visibility = "visible";
+}
+
+supabase.auth.onAuthStateChange((_event, novaSessao) => {
+  if (!novaSessao) {
+    window.location.href = "login.html";
+  }
 });

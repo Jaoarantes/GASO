@@ -1,6 +1,5 @@
 node_modules/
 .vercel
-.firebase/
 .env
 .env.local
 .DS_Store

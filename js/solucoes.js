@@ -1,17 +1,11 @@
-import { db } from "./firebase-config.js";
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy
-} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { supabase } from "./supabase-config.js";
 
 const listaEl = document.getElementById("solucoes-lista");
 const vazioEl = document.getElementById("solucoes-vazio");
 
-function formatarData(timestamp) {
-  if (!timestamp) return "";
-  return timestamp.toDate().toLocaleDateString("pt-BR");
+function formatarData(isoString) {
+  if (!isoString) return "";
+  return new Date(isoString).toLocaleDateString("pt-BR");
 }
 
 function criarCard(id, dados) {
@@ -24,7 +18,7 @@ function criarCard(id, dados) {
     <p class="solucao-card__erro">${dados.erro || ""}</p>
     <div class="solucao-card__meta">
       <span>${dados.autor || "Autor não informado"}</span>
-      <span>${formatarData(dados.criadoEm)}</span>
+      <span>${formatarData(dados.criado_em)}</span>
     </div>
   `;
 
@@ -32,16 +26,18 @@ function criarCard(id, dados) {
 }
 
 async function carregarSolucoes() {
-  const consulta = query(collection(db, "solucoes"), orderBy("criadoEm", "desc"));
-  const snapshot = await getDocs(consulta);
+  const { data, error } = await supabase
+    .from("solucoes")
+    .select("*")
+    .order("criado_em", { ascending: false });
 
-  if (snapshot.empty) {
+  if (error || !data || data.length === 0) {
     vazioEl.hidden = false;
     return;
   }
 
-  snapshot.forEach((docSnap) => {
-    listaEl.appendChild(criarCard(docSnap.id, docSnap.data()));
+  data.forEach((solucao) => {
+    listaEl.appendChild(criarCard(solucao.id, solucao));
   });
 }
 

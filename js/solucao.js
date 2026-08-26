@@ -1,11 +1,10 @@
-import { db } from "./firebase-config.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { supabase } from "./supabase-config.js";
 
 const conteudoEl = document.getElementById("solucao-conteudo");
 
-function formatarData(timestamp) {
-  if (!timestamp) return "";
-  return timestamp.toDate().toLocaleDateString("pt-BR");
+function formatarData(isoString) {
+  if (!isoString) return "";
+  return new Date(isoString).toLocaleDateString("pt-BR");
 }
 
 function renderizarGaleria(imagens) {
@@ -68,7 +67,7 @@ function renderizarSolucao(dados) {
 
       <div class="form-group">
         <label class="form-label">Data</label>
-        <p>${formatarData(dados.criadoEm)}</p>
+        <p>${formatarData(dados.criado_em)}</p>
       </div>
 
       <div class="form-group form-group--full">
@@ -94,14 +93,18 @@ async function carregarSolucao() {
     return;
   }
 
-  const snapshot = await getDoc(doc(db, "solucoes", id));
+  const { data, error } = await supabase
+    .from("solucoes")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (!snapshot.exists()) {
+  if (error || !data) {
     conteudoEl.innerHTML = "<p>Solução não encontrada.</p>";
     return;
   }
 
-  renderizarSolucao(snapshot.data());
+  renderizarSolucao(data);
 }
 
 carregarSolucao();

@@ -1,15 +1,4 @@
-import { auth, db, storage } from "./firebase-config.js";
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
+import { supabase } from "./supabase-config.js";
 
 const form = document.getElementById("nova-solucao-form");
 const tituloInput = document.getElementById("titulo");
@@ -154,9 +143,16 @@ function comLimiteDeTempo(promessa, segundos) {
 }
 
 async function enviarArquivo(solucaoId, nomeArquivo, arquivo) {
-  const arquivoRef = ref(storage, `solucoes/${solucaoId}/${nomeArquivo}`);
-  await comLimiteDeTempo(uploadBytes(arquivoRef, arquivo), 15);
-  return getDownloadURL(arquivoRef);
+  const caminho = `${solucaoId}/${nomeArquivo}`;
+
+  const { error } = await comLimiteDeTempo(
+    supabase.storage.from("solucoes").upload(caminho, arquivo),
+    15
+  );
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("solucoes").getPublicUrl(caminho);
+  return data.publicUrl;
 }
 
 async function montarPassos(solucaoId) {
@@ -195,24 +191,27 @@ form.addEventListener("submit", async (event) => {
   submitBtn.textContent = "Salvando...";
 
   try {
-    const docRef = await addDoc(collection(db, "solucoes"), {
-      titulo: tituloInput.value.trim(),
-      erro: erroInput.value.trim(),
-      autor: autorInput.value.trim(),
-      passos: [],
-      anexos: [],
-      criadoPor: auth.currentUser.uid,
-      criadoEm: serverTimestamp()
-    });
+    const { data: { user } } = await supabase.auth.getUser();
+    const solucaoId = crypto.randomUUID();
 
     const arquivos = Array.from(anexosInput.files);
 
     const [passos, anexos] = await Promise.all([
-      montarPassos(docRef.id),
-      enviarAnexos(docRef.id, arquivos)
+      montarPassos(solucaoId),
+      enviarAnexos(solucaoId, arquivos)
     ]);
 
-    await updateDoc(docRef, { passos, anexos });
+    const { error } = await supabase.from("solucoes").insert({
+      id: solucaoId,
+      titulo: tituloInput.value.trim(),
+      erro: erroInput.value.trim(),
+      autor: autorInput.value.trim(),
+      passos,
+      anexos,
+      criado_por: user.id
+    });
+
+    if (error) throw error;
 
     window.location.href = "solucoes.html";
     return;
