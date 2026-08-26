@@ -39,15 +39,39 @@ function ajustarAltura(textarea) {
   textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
+const DICA_PADRAO = "Cole uma imagem com Ctrl+V ou";
+
 function mostrarImagemNaZona(zonaEl, arquivo) {
   const preview = zonaEl.querySelector(".passo__imagem-preview");
   const dica = zonaEl.querySelector(".passo__imagem-dica");
   const icone = zonaEl.querySelector(".passo__imagem-icone");
+  const removerBtn = zonaEl.querySelector(".passo__imagem-remover");
+  const selecionarBtn = zonaEl.querySelector(".passo__imagem-btn");
   preview.src = URL.createObjectURL(arquivo);
   preview.hidden = false;
   icone.hidden = true;
   dica.textContent = arquivo.name || "Imagem colada";
+  selecionarBtn.hidden = true;
+  removerBtn.hidden = false;
   zonaEl._imagemArquivo = arquivo;
+}
+
+function removerImagemDaZona(zonaEl) {
+  const preview = zonaEl.querySelector(".passo__imagem-preview");
+  const dica = zonaEl.querySelector(".passo__imagem-dica");
+  const icone = zonaEl.querySelector(".passo__imagem-icone");
+  const removerBtn = zonaEl.querySelector(".passo__imagem-remover");
+  const selecionarBtn = zonaEl.querySelector(".passo__imagem-btn");
+  const inputImagemEl = zonaEl.querySelector(".passo__imagem-input");
+
+  preview.src = "";
+  preview.hidden = true;
+  icone.hidden = false;
+  dica.textContent = DICA_PADRAO;
+  selecionarBtn.hidden = false;
+  removerBtn.hidden = true;
+  inputImagemEl.value = "";
+  zonaEl._imagemArquivo = null;
 }
 
 function criarPasso() {
@@ -77,6 +101,7 @@ function criarPasso() {
         <p class="passo__imagem-dica">Cole uma imagem com Ctrl+V ou</p>
         <button class="btn-secundario passo__imagem-btn" type="button">Selecionar imagem</button>
         <img class="passo__imagem-preview" hidden alt="Prévia da imagem do passo">
+        <button class="passo__imagem-remover" type="button" hidden>Remover imagem</button>
         <input class="passo__imagem-input" type="file" accept="image/*" hidden>
       </div>
     </div>
@@ -88,8 +113,11 @@ function criarPasso() {
   const zonaEl = passoEl.querySelector(".passo__imagem-zone");
   const inputImagemEl = passoEl.querySelector(".passo__imagem-input");
   const selecionarBtn = passoEl.querySelector(".passo__imagem-btn");
+  const removerImagemBtn = passoEl.querySelector(".passo__imagem-remover");
 
   selecionarBtn.addEventListener("click", () => inputImagemEl.click());
+
+  removerImagemBtn.addEventListener("click", () => removerImagemDaZona(zonaEl));
 
   inputImagemEl.addEventListener("change", () => {
     const arquivo = inputImagemEl.files[0];
