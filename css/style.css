@@ -297,27 +297,17 @@ body {
   box-shadow: 0 0 0 4px var(--cor-primaria-suave);
 }
 
-.form-file {
-  font-size: 14px;
-  color: var(--cor-texto-suave);
+.anexos {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
-.form-file::file-selector-button {
-  border: none;
-  border-radius: 8px;
-  padding: 9px 16px;
-  margin-right: 14px;
-  font-family: inherit;
+.anexos__lista {
   font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  background-color: var(--cor-primaria);
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.form-file::file-selector-button:hover {
-  background-color: var(--cor-primaria-hover);
+  font-weight: 500;
+  color: var(--cor-texto-suave);
 }
 
 .form-status {

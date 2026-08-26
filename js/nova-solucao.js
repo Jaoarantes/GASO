@@ -15,6 +15,8 @@ const form = document.getElementById("nova-solucao-form");
 const tituloInput = document.getElementById("titulo");
 const erroInput = document.getElementById("erro");
 const anexosInput = document.getElementById("anexos");
+const anexosBtn = document.getElementById("anexos-btn");
+const anexosLista = document.getElementById("anexos-lista");
 const autorInput = document.getElementById("autor");
 const statusEl = document.getElementById("form-status");
 const submitBtn = document.getElementById("form-submit");
@@ -113,6 +115,15 @@ function criarPasso() {
 addPassoBtn.addEventListener("click", criarPasso);
 criarPasso();
 
+anexosBtn.addEventListener("click", () => anexosInput.click());
+
+anexosInput.addEventListener("change", () => {
+  const arquivos = Array.from(anexosInput.files);
+  anexosLista.textContent = arquivos.length > 0
+    ? arquivos.map((arquivo) => arquivo.name).join(", ")
+    : "Nenhum arquivo selecionado";
+});
+
 async function enviarArquivo(solucaoId, nomeArquivo, arquivo) {
   const arquivoRef = ref(storage, `solucoes/${solucaoId}/${nomeArquivo}`);
   await uploadBytes(arquivoRef, arquivo);
@@ -187,6 +198,7 @@ form.addEventListener("submit", async (event) => {
 
     mostrarStatus("Solução salva com sucesso.", "sucesso");
     form.reset();
+    anexosLista.textContent = "Nenhum arquivo selecionado";
     passosContainer.querySelectorAll(".passo").forEach((passoEl) => passoEl.remove());
     criarPasso();
   } catch (erro) {
