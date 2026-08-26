@@ -39,18 +39,19 @@ function ajustarAltura(textarea) {
   textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
-const MAX_IMAGENS_POR_PASSO = 5;
-
 function atualizarListaImagens(zonaEl) {
   const listaEl = zonaEl.querySelector(".passo__imagem-lista");
-  const selecionarBtn = zonaEl.querySelector(".passo__imagem-btn");
   const imagens = zonaEl._imagens;
 
   listaEl.innerHTML = "";
   imagens.forEach((arquivo, indice) => {
-    const item = document.createElement("span");
+    const item = document.createElement("div");
     item.className = "passo__imagem-item";
-    item.textContent = arquivo.name || `imagem-${indice + 1}`;
+
+    const preview = document.createElement("img");
+    preview.className = "passo__imagem-preview";
+    preview.src = URL.createObjectURL(arquivo);
+    preview.alt = arquivo.name || `Imagem ${indice + 1}`;
 
     const removerBtn = document.createElement("button");
     removerBtn.type = "button";
@@ -62,20 +63,14 @@ function atualizarListaImagens(zonaEl) {
       atualizarListaImagens(zonaEl);
     });
 
+    item.appendChild(preview);
     item.appendChild(removerBtn);
     listaEl.appendChild(item);
   });
-
-  const atingiuLimite = imagens.length >= MAX_IMAGENS_POR_PASSO;
-  selecionarBtn.disabled = atingiuLimite;
-  selecionarBtn.textContent = atingiuLimite ? "Máximo de 5 imagens" : "Adicionar imagem";
 }
 
 function adicionarImagens(zonaEl, novosArquivos) {
-  for (const arquivo of novosArquivos) {
-    if (zonaEl._imagens.length >= MAX_IMAGENS_POR_PASSO) break;
-    zonaEl._imagens.push(arquivo);
-  }
+  zonaEl._imagens.push(...novosArquivos);
   atualizarListaImagens(zonaEl);
 }
 
@@ -96,7 +91,7 @@ function criarPasso() {
       <textarea class="form-textarea passo__como" rows="3" placeholder="Descreva como realizar essa ação"></textarea>
     </div>
     <div class="passo__campo">
-      <label class="form-label">Imagens (até 5)</label>
+      <label class="form-label">Imagens</label>
       <div class="passo__imagem-zone">
         <button class="btn-secundario passo__imagem-btn" type="button">Adicionar imagem</button>
         <div class="passo__imagem-lista"></div>
