@@ -32,6 +32,11 @@ function renumerarPassos() {
   });
 }
 
+function ajustarAltura(textarea) {
+  textarea.style.height = "auto";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
 function mostrarImagemNaZona(zonaEl, arquivo) {
   const preview = zonaEl.querySelector(".passo__imagem-preview");
   const dica = zonaEl.querySelector(".passo__imagem-dica");
@@ -74,6 +79,9 @@ function criarPasso() {
       </div>
     </div>
   `;
+
+  const comoInput = passoEl.querySelector(".passo__como");
+  comoInput.addEventListener("input", () => ajustarAltura(comoInput));
 
   const zonaEl = passoEl.querySelector(".passo__imagem-zone");
   const inputImagemEl = passoEl.querySelector(".passo__imagem-input");

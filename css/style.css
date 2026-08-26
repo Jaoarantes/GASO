@@ -279,10 +279,12 @@ body {
 
 .form-input,
 .form-textarea {
+  width: 100%;
   border: 1.5px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   padding: 11px 14px;
   font-size: 15px;
+  font-weight: 600;
   color: var(--cor-texto);
   outline: none;
   resize: vertical;
@@ -448,6 +450,11 @@ body {
 
 .passo__remover:hover {
   background-color: rgba(198, 40, 40, 0.08);
+}
+
+.passo__como {
+  resize: none;
+  overflow: hidden;
 }
 
 .passo__campo {
