@@ -506,3 +506,141 @@ body {
 .passo__imagem-item-remover:hover {
   background-color: #a81f1f;
 }
+
+/* Listagem de soluções */
+
+.solucoes-vazio {
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+}
+
+.solucoes-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.solucao-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: var(--cor-superficie);
+  border: 1px solid rgba(20, 20, 30, 0.04);
+  border-radius: var(--raio);
+  padding: 20px;
+  box-shadow: var(--sombra-card);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.solucao-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(20, 20, 30, 0.1);
+}
+
+.solucao-card__titulo {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.solucao-card__erro {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.solucao-card__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Detalhe da solução */
+
+.voltar-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cor-primaria);
+  text-decoration: none;
+}
+
+.voltar-link:hover {
+  text-decoration: underline;
+}
+
+.solucao-passos {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.solucao-passo {
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  padding: 20px;
+  background-color: var(--cor-superficie);
+}
+
+.solucao-passo__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.solucao-passo__acao {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.solucao-passo__como {
+  font-size: 14px;
+  color: var(--cor-texto);
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+
+.solucao-passo__galeria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.solucao-passo__imagem {
+  width: 160px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--cor-borda);
+}
+
+.solucao-anexos {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.solucao-anexos a {
+  color: var(--cor-primaria);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.solucao-anexos a:hover {
+  text-decoration: underline;
+}
