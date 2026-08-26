@@ -64,6 +64,8 @@ function renderizarSolucao(dados) {
         </div>
       </div>
 
+      <p class="form-status" id="excluir-erro"></p>
+
       <div class="form-group">
         <label class="form-label">Autor</label>
         <p>${dados.autor || "Não informado"}</p>
@@ -117,11 +119,41 @@ lightboxEl.addEventListener("click", (event) => {
   }
 });
 
+const modalEl = document.getElementById("modal-exclusao");
+const modalCancelarBtn = document.getElementById("modal-cancelar");
+const modalConfirmarBtn = document.getElementById("modal-confirmar");
+
+function confirmarExclusao() {
+  return new Promise((resolve) => {
+    modalEl.hidden = false;
+    document.body.style.overflow = "hidden";
+
+    function limpar(resultado) {
+      modalEl.hidden = true;
+      document.body.style.overflow = "";
+      modalCancelarBtn.removeEventListener("click", aoCancelar);
+      modalConfirmarBtn.removeEventListener("click", aoConfirmar);
+      modalEl.removeEventListener("click", aoClicarFora);
+      resolve(resultado);
+    }
+
+    function aoCancelar() { limpar(false); }
+    function aoConfirmar() { limpar(true); }
+    function aoClicarFora(event) {
+      if (event.target === modalEl) limpar(false);
+    }
+
+    modalCancelarBtn.addEventListener("click", aoCancelar);
+    modalConfirmarBtn.addEventListener("click", aoConfirmar);
+    modalEl.addEventListener("click", aoClicarFora);
+  });
+}
+
 conteudoEl.addEventListener("click", async (event) => {
   if (event.target.id !== "excluir-solucao") return;
 
   const id = event.target.dataset.id;
-  const confirmado = window.confirm("Tem certeza que deseja excluir esta solução? Essa ação não pode ser desfeita.");
+  const confirmado = await confirmarExclusao();
   if (!confirmado) return;
 
   event.target.disabled = true;
@@ -136,7 +168,9 @@ conteudoEl.addEventListener("click", async (event) => {
   const { error } = await supabase.from("solucoes").delete().eq("id", id);
 
   if (error) {
-    window.alert("Não foi possível excluir a solução. Tente novamente.");
+    const erroEl = document.getElementById("excluir-erro");
+    erroEl.textContent = "Não foi possível excluir a solução. Tente novamente.";
+    erroEl.className = "form-status form-status--erro";
     event.target.disabled = false;
     event.target.textContent = "Excluir solução";
     return;
