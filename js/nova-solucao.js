@@ -322,7 +322,7 @@ form.addEventListener("submit", async (event) => {
 
     if (erroSalvar) throw erroSalvar;
 
-    window.location.href = solucaoIdEdicao ? `solucao.html?id=${solucaoIdEdicao}` : "solucoes.html";
+    window.location.href = solucaoIdEdicao ? "solucoes.html?editado=1" : "solucoes.html";
     return;
   } catch (erro) {
     console.error("Erro ao salvar solução:", erro);

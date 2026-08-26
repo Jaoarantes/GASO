@@ -555,6 +555,16 @@ body {
   font-size: 14px;
 }
 
+.aviso-sucesso {
+  color: #2e7d32;
+  background-color: rgba(46, 125, 50, 0.08);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
 .solucoes-lista {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -689,8 +699,10 @@ body {
 }
 
 .lightbox__img {
-  width: 70%;
-  height: 70%;
+  max-width: 70%;
+  max-height: 70%;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 8px;
 }

@@ -2,6 +2,12 @@ import { supabase } from "./supabase-config.js";
 
 const listaEl = document.getElementById("solucoes-lista");
 const vazioEl = document.getElementById("solucoes-vazio");
+const avisoEditadoEl = document.getElementById("aviso-editado");
+
+if (new URLSearchParams(window.location.search).get("editado")) {
+  avisoEditadoEl.hidden = false;
+  window.history.replaceState({}, "", "solucoes.html");
+}
 
 function formatarData(isoString) {
   if (!isoString) return "";
