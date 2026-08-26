@@ -40,7 +40,7 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  window.location.href = "index.html";
+  window.location.href = "solucoes.html";
 });
 
 const ICONE_OLHO = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
