@@ -1,15 +1,11 @@
 import { auth } from "./firebase-config.js";
-import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup
-} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
 const form = document.getElementById("login-form");
 const usuarioInput = document.getElementById("login-usuario");
 const senhaInput = document.getElementById("senha");
 const errorEl = document.getElementById("login-error");
-const googleBtn = document.getElementById("google-btn");
+const toggleSenhaBtn = document.getElementById("toggle-senha");
 
 // O Firebase Authentication só autentica por e-mail. Para o usuário digitar
 // apenas um "login" (sem e-mail), convertemos para um e-mail fixo interno
@@ -27,8 +23,7 @@ function mostrarErro(codigo) {
     "auth/invalid-credential": "Login ou senha incorretos.",
     "auth/user-not-found": "Login ou senha incorretos.",
     "auth/wrong-password": "Login ou senha incorretos.",
-    "auth/too-many-requests": "Muitas tentativas. Aguarde um momento e tente novamente.",
-    "auth/popup-closed-by-user": "Login com Google cancelado."
+    "auth/too-many-requests": "Muitas tentativas. Aguarde um momento e tente novamente."
   };
   errorEl.textContent = mensagens[codigo] || "Não foi possível entrar. Tente novamente.";
 }
@@ -45,14 +40,8 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-googleBtn.addEventListener("click", async () => {
-  errorEl.textContent = "";
-  const provider = new GoogleAuthProvider();
-
-  try {
-    await signInWithPopup(auth, provider);
-    window.location.href = "index.html";
-  } catch (erro) {
-    mostrarErro(erro.code);
-  }
+toggleSenhaBtn.addEventListener("click", () => {
+  const visivel = senhaInput.type === "text";
+  senhaInput.type = visivel ? "password" : "text";
+  toggleSenhaBtn.textContent = visivel ? "Mostrar" : "Ocultar";
 });

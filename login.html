@@ -10,31 +10,24 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="navbar">
-    <a class="navbar__logo" href="index.html">
-      <img src="assets/img/logo-claro.svg" alt="Gasometro">
-    </a>
-  </header>
-
   <main class="login">
     <form class="login__card" id="login-form" novalidate>
+      <img class="login__logo" src="assets/img/logo-claro.svg" alt="Gasometro">
+
       <h1 class="login__title">Entrar</h1>
 
       <label class="login__label" for="login-usuario">Login</label>
       <input class="login__input" type="text" id="login-usuario" name="login-usuario" autocomplete="username" required>
 
       <label class="login__label" for="senha">Senha</label>
-      <input class="login__input" type="password" id="senha" name="senha" autocomplete="current-password" required>
+      <div class="login__senha-wrapper">
+        <input class="login__input" type="password" id="senha" name="senha" autocomplete="current-password" required>
+        <button class="login__toggle-senha" type="button" id="toggle-senha">Mostrar</button>
+      </div>
 
       <p class="login__error" id="login-error"></p>
 
       <button class="login__btn" type="submit">Entrar</button>
-
-      <div class="login__divider"><span>ou</span></div>
-
-      <button class="login__btn login__btn--google" type="button" id="google-btn">
-        Entrar com Google
-      </button>
     </form>
   </main>
 

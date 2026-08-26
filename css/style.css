@@ -136,28 +136,32 @@ body {
   filter: brightness(1.05);
 }
 
-.login__btn--google {
-  background-color: #ffffff;
-  color: #3d3d3d;
-  border: 1px solid #d9dbe0;
+.login__logo {
+  height: 40px;
+  width: auto;
+  margin: 0 auto 24px;
 }
 
-.login__divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  color: #9a9ca3;
+.login__senha-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.login__senha-wrapper .login__input {
+  margin-bottom: 0;
+  padding-right: 72px;
+  width: 100%;
+}
+
+.login__toggle-senha {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: #e84e0e;
   font-size: 13px;
-  margin: 20px 0;
-}
-
-.login__divider::before,
-.login__divider::after {
-  content: "";
-  flex: 1;
-  border-bottom: 1px solid #e4e5e9;
-}
-
-.login__divider span {
-  padding: 0 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
