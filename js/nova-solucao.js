@@ -39,29 +39,44 @@ function ajustarAltura(textarea) {
   textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
-function mostrarImagemNaZona(zonaEl, arquivo) {
-  const preview = zonaEl.querySelector(".passo__imagem-preview");
-  const removerBtn = zonaEl.querySelector(".passo__imagem-remover");
+const MAX_IMAGENS_POR_PASSO = 5;
+
+function atualizarListaImagens(zonaEl) {
+  const listaEl = zonaEl.querySelector(".passo__imagem-lista");
   const selecionarBtn = zonaEl.querySelector(".passo__imagem-btn");
-  preview.src = URL.createObjectURL(arquivo);
-  preview.hidden = false;
-  selecionarBtn.hidden = true;
-  removerBtn.hidden = false;
-  zonaEl._imagemArquivo = arquivo;
+  const imagens = zonaEl._imagens;
+
+  listaEl.innerHTML = "";
+  imagens.forEach((arquivo, indice) => {
+    const item = document.createElement("span");
+    item.className = "passo__imagem-item";
+    item.textContent = arquivo.name || `imagem-${indice + 1}`;
+
+    const removerBtn = document.createElement("button");
+    removerBtn.type = "button";
+    removerBtn.className = "passo__imagem-item-remover";
+    removerBtn.setAttribute("aria-label", "Remover imagem");
+    removerBtn.textContent = "×";
+    removerBtn.addEventListener("click", () => {
+      imagens.splice(indice, 1);
+      atualizarListaImagens(zonaEl);
+    });
+
+    item.appendChild(removerBtn);
+    listaEl.appendChild(item);
+  });
+
+  const atingiuLimite = imagens.length >= MAX_IMAGENS_POR_PASSO;
+  selecionarBtn.disabled = atingiuLimite;
+  selecionarBtn.textContent = atingiuLimite ? "Máximo de 5 imagens" : "Adicionar imagem";
 }
 
-function removerImagemDaZona(zonaEl) {
-  const preview = zonaEl.querySelector(".passo__imagem-preview");
-  const removerBtn = zonaEl.querySelector(".passo__imagem-remover");
-  const selecionarBtn = zonaEl.querySelector(".passo__imagem-btn");
-  const inputImagemEl = zonaEl.querySelector(".passo__imagem-input");
-
-  preview.src = "";
-  preview.hidden = true;
-  selecionarBtn.hidden = false;
-  removerBtn.hidden = true;
-  inputImagemEl.value = "";
-  zonaEl._imagemArquivo = null;
+function adicionarImagens(zonaEl, novosArquivos) {
+  for (const arquivo of novosArquivos) {
+    if (zonaEl._imagens.length >= MAX_IMAGENS_POR_PASSO) break;
+    zonaEl._imagens.push(arquivo);
+  }
+  atualizarListaImagens(zonaEl);
 }
 
 function criarPasso() {
@@ -81,12 +96,11 @@ function criarPasso() {
       <textarea class="form-textarea passo__como" rows="3" placeholder="Descreva como realizar essa ação"></textarea>
     </div>
     <div class="passo__campo">
-      <label class="form-label">Imagem</label>
+      <label class="form-label">Imagens (até 5)</label>
       <div class="passo__imagem-zone">
         <button class="btn-secundario passo__imagem-btn" type="button">Adicionar imagem</button>
-        <img class="passo__imagem-preview" hidden alt="Prévia da imagem do passo">
-        <button class="passo__imagem-remover" type="button" hidden>Remover imagem</button>
-        <input class="passo__imagem-input" type="file" accept="image/*" hidden>
+        <div class="passo__imagem-lista"></div>
+        <input class="passo__imagem-input" type="file" accept="image/*" multiple hidden>
       </div>
     </div>
   `;
@@ -94,7 +108,8 @@ function criarPasso() {
   const zonaEl = passoEl.querySelector(".passo__imagem-zone");
   const inputImagemEl = passoEl.querySelector(".passo__imagem-input");
   const selecionarBtn = passoEl.querySelector(".passo__imagem-btn");
-  const removerImagemBtn = passoEl.querySelector(".passo__imagem-remover");
+  zonaEl._imagens = [];
+  atualizarListaImagens(zonaEl);
 
   const comoInput = passoEl.querySelector(".passo__como");
   comoInput.addEventListener("input", () => ajustarAltura(comoInput));
@@ -103,17 +118,14 @@ function criarPasso() {
     const item = Array.from(event.clipboardData.items).find((i) => i.type.startsWith("image/"));
     if (!item) return;
     event.preventDefault();
-    const arquivo = item.getAsFile();
-    mostrarImagemNaZona(zonaEl, arquivo);
+    adicionarImagens(zonaEl, [item.getAsFile()]);
   });
 
   selecionarBtn.addEventListener("click", () => inputImagemEl.click());
 
-  removerImagemBtn.addEventListener("click", () => removerImagemDaZona(zonaEl));
-
   inputImagemEl.addEventListener("change", () => {
-    const arquivo = inputImagemEl.files[0];
-    if (arquivo) mostrarImagemNaZona(zonaEl, arquivo);
+    adicionarImagens(zonaEl, Array.from(inputImagemEl.files));
+    inputImagemEl.value = "";
   });
 
   passoEl.querySelector(".passo__remover").addEventListener("click", () => {
@@ -150,19 +162,21 @@ async function montarPassos(solucaoId) {
   for (let i = 0; i < passosEl.length; i++) {
     const passoEl = passosEl[i];
     const zonaEl = passoEl.querySelector(".passo__imagem-zone");
-    const arquivo = zonaEl._imagemArquivo;
+    const arquivosImagem = zonaEl._imagens || [];
 
-    let imagemUrl = null;
-    if (arquivo) {
-      const nomeArquivo = `passo-${i + 1}-${arquivo.name || "colada.png"}`;
-      imagemUrl = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
+    const imagens = [];
+    for (let j = 0; j < arquivosImagem.length; j++) {
+      const arquivo = arquivosImagem[j];
+      const nomeArquivo = `passo-${i + 1}-${j + 1}-${arquivo.name || "colada.png"}`;
+      const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
+      imagens.push({ nome: arquivo.name || nomeArquivo, url });
     }
 
     passos.push({
       ordem: i + 1,
       acao: passoEl.querySelector(".passo__acao").value.trim(),
       comoFazer: passoEl.querySelector(".passo__como").value.trim(),
-      imagemUrl
+      imagens
     });
   }
 
