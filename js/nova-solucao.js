@@ -67,7 +67,8 @@ function criarPasso() {
           <circle cx="8.5" cy="9.5" r="1.5"/>
           <path d="M21 15l-5-5-9 9"/>
         </svg>
-        <p class="passo__imagem-dica">Clique para selecionar ou cole com Ctrl+V</p>
+        <p class="passo__imagem-dica">Cole uma imagem com Ctrl+V ou</p>
+        <button class="btn-secundario passo__imagem-btn" type="button">Selecionar imagem</button>
         <img class="passo__imagem-preview" hidden alt="Prévia da imagem do passo">
         <input class="passo__imagem-input" type="file" accept="image/*" hidden>
       </div>
@@ -76,8 +77,9 @@ function criarPasso() {
 
   const zonaEl = passoEl.querySelector(".passo__imagem-zone");
   const inputImagemEl = passoEl.querySelector(".passo__imagem-input");
+  const selecionarBtn = passoEl.querySelector(".passo__imagem-btn");
 
-  zonaEl.addEventListener("click", () => inputImagemEl.click());
+  selecionarBtn.addEventListener("click", () => inputImagemEl.click());
 
   inputImagemEl.addEventListener("change", () => {
     const arquivo = inputImagemEl.files[0];
