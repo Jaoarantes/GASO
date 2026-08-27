@@ -38,6 +38,19 @@
       </div>
 
       <div class="form-group form-group--full">
+        <label class="form-label" for="categoria">Categoria</label>
+        <div class="categoria-campo">
+          <select class="form-input" id="categoria"></select>
+          <button class="btn-secundario" type="button" id="categoria-nova-btn">+ Nova categoria</button>
+        </div>
+        <div class="categoria-nova" id="categoria-nova-form" hidden>
+          <input class="form-input" type="text" id="categoria-nova-input" placeholder="Nome da nova categoria">
+          <button class="btn-secundario" type="button" id="categoria-nova-confirmar">Adicionar</button>
+          <button class="btn-secundario" type="button" id="categoria-nova-cancelar">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="form-group form-group--full">
         <label class="form-label" for="erro">Erro</label>
         <textarea class="form-textarea" id="erro" name="erro" rows="3" placeholder="ORA-242" required></textarea>
       </div>

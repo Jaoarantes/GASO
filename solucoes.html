@@ -24,10 +24,22 @@
   </header>
 
   <main class="page">
-    <h1 class="page__title">Soluções</h1>
+    <div class="solucoes-topo">
+      <h1 class="page__title">Soluções</h1>
+      <a class="btn-nova-solucao" href="nova-solucao.html">+ Nova Solução</a>
+    </div>
 
-    <p class="aviso-sucesso" id="aviso-editado" hidden>Solução editada com sucesso.</p>
-    <p class="solucoes-vazio" id="solucoes-vazio" hidden>Nenhuma solução cadastrada ainda.</p>
+    <div class="stat-card">
+      <span class="stat-card__label">Soluções cadastradas</span>
+      <span class="stat-card__valor" id="stat-total">0</span>
+    </div>
+
+    <input class="form-input busca-input" type="search" id="busca-input" placeholder="Buscar soluções, categorias...">
+
+    <div class="categorias-filtro" id="categorias-filtro"></div>
+
+    <p class="aviso-sucesso" id="aviso-editado" hidden></p>
+    <p class="solucoes-vazio" id="solucoes-vazio" hidden></p>
     <div class="solucoes-lista" id="solucoes-lista"></div>
   </main>
 

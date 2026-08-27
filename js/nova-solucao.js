@@ -5,6 +5,12 @@ const solucaoIdEdicao = new URLSearchParams(window.location.search).get("id");
 const form = document.getElementById("nova-solucao-form");
 const pageTitleEl = document.getElementById("page-titulo");
 const tituloInput = document.getElementById("titulo");
+const categoriaSelect = document.getElementById("categoria");
+const categoriaNovaBtn = document.getElementById("categoria-nova-btn");
+const categoriaNovaForm = document.getElementById("categoria-nova-form");
+const categoriaNovaInput = document.getElementById("categoria-nova-input");
+const categoriaNovaConfirmar = document.getElementById("categoria-nova-confirmar");
+const categoriaNovaCancelar = document.getElementById("categoria-nova-cancelar");
 const erroInput = document.getElementById("erro");
 const anexosInput = document.getElementById("anexos");
 const anexosBtn = document.getElementById("anexos-btn");
@@ -145,6 +151,56 @@ function criarPasso(dadosIniciais = {}) {
 addPassoBtn.addEventListener("click", () => criarPasso());
 criarPasso();
 
+async function carregarCategorias(selecionada) {
+  const { data } = await supabase.from("categorias").select("*").order("nome");
+
+  categoriaSelect.innerHTML = "";
+
+  const opcaoVazia = document.createElement("option");
+  opcaoVazia.value = "";
+  opcaoVazia.textContent = "Sem categoria";
+  categoriaSelect.appendChild(opcaoVazia);
+
+  (data || []).forEach((categoria) => {
+    const opcao = document.createElement("option");
+    opcao.value = categoria.nome;
+    opcao.textContent = categoria.nome;
+    categoriaSelect.appendChild(opcao);
+  });
+
+  categoriaSelect.value = selecionada || "";
+}
+
+carregarCategorias();
+
+categoriaNovaBtn.addEventListener("click", () => {
+  categoriaNovaForm.hidden = false;
+  categoriaNovaInput.focus();
+});
+
+categoriaNovaCancelar.addEventListener("click", () => {
+  categoriaNovaForm.hidden = true;
+  categoriaNovaInput.value = "";
+});
+
+categoriaNovaConfirmar.addEventListener("click", async () => {
+  const nome = categoriaNovaInput.value.trim();
+  if (!nome) return;
+
+  const { error } = await supabase
+    .from("categorias")
+    .upsert({ nome }, { onConflict: "nome", ignoreDuplicates: true });
+
+  if (error) {
+    mostrarStatus("Não foi possível criar a categoria. Tente novamente.", "erro");
+    return;
+  }
+
+  await carregarCategorias(nome);
+  categoriaNovaForm.hidden = true;
+  categoriaNovaInput.value = "";
+});
+
 let anexosExistentes = [];
 let anexosNovos = [];
 
@@ -266,6 +322,7 @@ async function carregarParaEdicao() {
   tituloInput.value = data.titulo || "";
   autorInput.value = data.autor || "";
   erroInput.value = data.erro || "";
+  await carregarCategorias(data.categoria);
 
   passosContainer.querySelectorAll(".passo").forEach((el) => el.remove());
   (data.passos || []).forEach((passo) => criarPasso(passo));
@@ -304,6 +361,7 @@ form.addEventListener("submit", async (event) => {
       titulo: tituloInput.value.trim(),
       erro: erroInput.value.trim(),
       autor: autorInput.value.trim(),
+      categoria: categoriaSelect.value || null,
       passos,
       anexos
     };
