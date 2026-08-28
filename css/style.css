@@ -13,9 +13,19 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 30%;
+  width: 20%;
   height: 100vh;
   background-color: #ffffff;
+}
+
+.sidebar__topo {
+  padding: 24px 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.sidebar__logo {
+  width: 100%;
+  height: auto;
 }
 
 .conteudo {
