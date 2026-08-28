@@ -246,6 +246,8 @@ function ativarAnexos() {
 }
 
 function criarCamposErro() {
+  codigoEditorAtivo = null;
+
   registroCampos.innerHTML = `
     <div class="campo-titulo">
       <input class="campo-titulo-input" type="text" placeholder="Erro ORA-01722 ao faturar pedido com desconto">
@@ -335,42 +337,21 @@ function ativarParametros() {
   lista.appendChild(criarParametroLinha());
 }
 
+let codigoEditorAtivo = null;
+
 function ativarBlocoCodigo() {
-  const area = document.getElementById("codigo-area");
-  const destaque = document.getElementById("codigo-highlight");
-  const numeros = document.getElementById("codigo-numeros");
+  const areaEl = document.getElementById("codigo-area");
   const copiarBtn = document.getElementById("codigo-copiar");
 
-  function atualizarNumeros() {
-    const totalLinhas = area.value.split("\n").length;
-    numeros.textContent = Array.from({ length: totalLinhas }, (_, i) => i + 1).join("\n");
-  }
-
-  function atualizarDestaque() {
-    destaque.textContent = area.value;
-    if (window.Prism) {
-      Prism.highlightElement(destaque);
-    }
-  }
-
-  function ajustarAlturaCodigo() {
-    area.style.height = "auto";
-    area.style.height = `${area.scrollHeight}px`;
-  }
-
-  area.addEventListener("input", () => {
-    atualizarNumeros();
-    atualizarDestaque();
-    ajustarAlturaCodigo();
+  codigoEditorAtivo = window.CodeMirror.fromTextArea(areaEl, {
+    mode: "text/x-sql",
+    lineNumbers: true,
+    lineWrapping: false
   });
-
-  atualizarNumeros();
-  atualizarDestaque();
-  ajustarAlturaCodigo();
 
   copiarBtn.addEventListener("click", async () => {
     try {
-      await navigator.clipboard.writeText(area.value);
+      await navigator.clipboard.writeText(codigoEditorAtivo.getValue());
       copiarBtn.textContent = "Copiado!";
       setTimeout(() => { copiarBtn.textContent = "Copiar"; }, 1500);
     } catch (erro) {
@@ -413,13 +394,7 @@ function criarCamposScript() {
           <span class="campo-label" style="margin-bottom: 0;">Bloco de código</span>
           <button class="codigo-bloco__copiar" type="button" id="codigo-copiar">Copiar</button>
         </div>
-        <div class="codigo-editor">
-          <pre class="codigo-editor__numeros" id="codigo-numeros">1</pre>
-          <div class="codigo-editor__area-wrap">
-            <pre class="codigo-editor__highlight"><code class="language-sql" id="codigo-highlight"></code></pre>
-            <textarea class="codigo-editor__textarea" id="codigo-area" rows="6" spellcheck="false" placeholder="SELECT ..."></textarea>
-          </div>
-        </div>
+        <textarea id="codigo-area" spellcheck="false"></textarea>
       </div>
     </div>
 
@@ -684,7 +659,7 @@ salvarBtn.addEventListener("click", async () => {
       tabelas_campos: coletarTags("tabelas-campo"),
       passos,
       anexos,
-      codigo: document.getElementById("codigo-area")?.value.trim() || "",
+      codigo: codigoEditorAtivo ? codigoEditorAtivo.getValue().trim() : "",
       parametros: coletarParametros(),
       risco: document.querySelector(".risco-btn--ativo")?.dataset.risco || null,
       reversivel: document.getElementById("reversivel-check")?.checked || false,
