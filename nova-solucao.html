@@ -45,9 +45,113 @@
 
   <header class="header"></header>
 
-  <main class="conteudo"></main>
+  <main class="conteudo">
+    <div class="registro-layout">
+      <div class="registro-esquerda">
+        <div class="registro-secao-titulo">
+          <span class="registro-secao-titulo__texto">TIPO DE REGISTRO</span>
+          <span class="registro-secao-titulo__ajuda">define os campos abaixo</span>
+        </div>
+
+        <div class="tipo-cards">
+          <button class="tipo-card" type="button" data-tipo="erro">
+            <span class="tipo-card__icone tipo-card__icone--erro">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </span>
+            <span class="tipo-card__titulo">Erro / Correção</span>
+            <span class="tipo-card__descricao">Um problema do ERP e como resolver</span>
+          </button>
+
+          <button class="tipo-card" type="button" data-tipo="script">
+            <span class="tipo-card__icone tipo-card__icone--script">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span class="tipo-card__titulo">Script / SQL</span>
+            <span class="tipo-card__descricao">Consulta ou rotina reutilizável</span>
+          </button>
+
+          <button class="tipo-card" type="button" data-tipo="procedimento">
+            <span class="tipo-card__icone tipo-card__icone--procedimento">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>
+            </span>
+            <span class="tipo-card__titulo">Procedimento</span>
+            <span class="tipo-card__descricao">Passo a passo ou configuração</span>
+          </button>
+        </div>
+
+        <div class="registro-vazio" id="registro-vazio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          <span>Escolha um tipo para abrir os campos do registro.</span>
+        </div>
+
+        <div class="registro-campos" id="registro-campos" hidden></div>
+      </div>
+
+      <aside class="registro-direita">
+        <div class="publicacao-cabecalho">
+          <span class="publicacao-titulo">PUBLICAÇÃO</span>
+          <span class="publicacao-status"><span class="publicacao-status__ponto"></span>Rascunho</span>
+        </div>
+
+        <div class="publicacao-divisor"></div>
+
+        <div class="publicacao-campo">
+          <label class="publicacao-label">Módulo do ERP</label>
+          <div class="publicacao-campo-linha">
+            <select class="publicacao-select">
+              <option>Faturamento</option>
+            </select>
+            <button class="publicacao-add" type="button" aria-label="Adicionar módulo">+</button>
+          </div>
+        </div>
+
+        <div class="publicacao-campo">
+          <label class="publicacao-label">Categoria</label>
+          <select class="publicacao-select">
+            <option>Faturamento / NF-e</option>
+          </select>
+        </div>
+
+        <div class="publicacao-campo">
+          <label class="publicacao-label">Criticidade</label>
+          <div class="criticidade-grupo">
+            <button class="criticidade-btn criticidade-btn--baixa" data-criticidade="baixa" type="button">Baixa</button>
+            <button class="criticidade-btn criticidade-btn--media" data-criticidade="media" type="button">Média</button>
+            <button class="criticidade-btn criticidade-btn--alta criticidade-btn--ativo" data-criticidade="alta" type="button">Alta</button>
+            <button class="criticidade-btn criticidade-btn--critica" data-criticidade="critica" type="button">Crítica</button>
+          </div>
+        </div>
+
+        <div class="publicacao-campo">
+          <label class="publicacao-label">Visibilidade</label>
+          <select class="publicacao-select">
+            <option>Todo o time</option>
+          </select>
+        </div>
+
+        <div class="publicacao-campo">
+          <label class="publicacao-label">Revisor</label>
+          <div class="revisor-campo">
+            <span class="revisor-avatar">JP</span>
+            <span class="revisor-nome">Juliana Prado</span>
+          </div>
+        </div>
+
+        <div class="publicacao-divisor"></div>
+
+        <p class="publicacao-autosave">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Salvo automaticamente há 12s
+        </p>
+
+        <button class="publicacao-btn publicacao-btn--principal" type="button">Publicar</button>
+        <button class="publicacao-btn publicacao-btn--secundario" type="button">Salvar rascunho</button>
+      </aside>
+    </div>
+  </main>
 
   <script type="module" src="js/auth-guard.js"></script>
   <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/nova-solucao.js"></script>
 </body>
 </html>
