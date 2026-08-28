@@ -313,15 +313,27 @@ function criarCamposErro() {
   ativarAnexos();
 }
 
-function criarCamposEmConstrucao(titulo) {
-  registroCampos.innerHTML = `<p class="campo-em-construcao">Campos de "${titulo}" — em construção.</p>`;
-}
+function criarCamposScript() {
+  registroCampos.innerHTML = `
+    <div class="campo-titulo">
+      <input class="campo-titulo-input" type="text" placeholder="Divergência entre estoque físico e contábil por filial">
+    </div>
 
-const TITULOS_TIPO = {
-  erro: "Erro / Correção",
-  script: "Script / SQL",
-  procedimento: "Procedimento"
-};
+    <div class="campo-grupo">
+      <label class="campo-label">O que este registro resolve</label>
+      <textarea class="campo-textarea" rows="3" placeholder="Descreva o que essa consulta ou rotina faz e quando usá-la."></textarea>
+    </div>
+
+    <div class="campo-grupo">
+      <label class="campo-label">Sintomas e palavras-chave</label>
+      <div class="tags-campo" id="tags-campo">
+        <input class="tags-input" type="text" id="tags-input" placeholder="adicionar...">
+      </div>
+    </div>
+  `;
+
+  ativarCampoTags("tags-campo", "tags-input");
+}
 
 tipoCards.forEach((card) => {
   card.addEventListener("click", () => {
@@ -334,8 +346,8 @@ tipoCards.forEach((card) => {
 
     if (tipo === "erro") {
       criarCamposErro();
-    } else {
-      criarCamposEmConstrucao(TITULOS_TIPO[tipo]);
+    } else if (tipo === "script") {
+      criarCamposScript();
     }
   });
 });
@@ -483,7 +495,8 @@ salvarBtn.addEventListener("click", async () => {
     return;
   }
 
-  if (tipoAtivo.dataset.tipo !== "erro") {
+  const tipo = tipoAtivo.dataset.tipo;
+  if (tipo !== "erro" && tipo !== "script") {
     publicacaoErro.textContent = "Os campos desse tipo de registro ainda não estão prontos para salvar.";
     return;
   }
@@ -509,7 +522,7 @@ salvarBtn.addEventListener("click", async () => {
 
     const { error } = await supabase.from("solucoes").insert({
       id: solucaoId,
-      tipo: "erro",
+      tipo,
       titulo,
       erro: document.querySelector(".campo-textarea")?.value.trim() || "",
       codigo_erro: document.querySelector(".campo-input--codigo")?.value.trim() || "",

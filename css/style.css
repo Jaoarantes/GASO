@@ -423,7 +423,7 @@ body {
 
 .tipo-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -463,12 +463,6 @@ body {
   box-shadow: none;
 }
 
-.tipo-card[data-tipo="procedimento"].tipo-card--ativo {
-  border-color: #2fa360;
-  background-color: #e5f6ea;
-  box-shadow: none;
-}
-
 .tipo-card__icone {
   display: flex;
   align-items: center;
@@ -491,11 +485,6 @@ body {
 .tipo-card__icone--script {
   background-color: #eee9fb;
   color: #7c5cf0;
-}
-
-.tipo-card__icone--procedimento {
-  background-color: #e5f6ea;
-  color: #2fa360;
 }
 
 .tipo-card__titulo {
