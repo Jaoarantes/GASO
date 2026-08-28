@@ -866,3 +866,170 @@ body {
 .tags-input::placeholder {
   color: var(--cor-texto-fraco);
 }
+
+.tags-input--mono {
+  font-family: "Courier New", Courier, monospace;
+}
+
+/* Passo a passo */
+
+.passo-a-passo {
+  margin-bottom: 20px;
+}
+
+.passo-a-passo__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.passo-a-passo__titulo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.passo-a-passo__dica {
+  font-size: 12px;
+  color: var(--cor-texto-fraco);
+}
+
+.passos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.passo-card {
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  padding: 14px;
+}
+
+.passo-card--arrastando {
+  opacity: 0.4;
+}
+
+.passo-card__topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.passo-card__handle {
+  flex-shrink: 0;
+  width: 18px;
+  height: 24px;
+  color: var(--cor-texto-fraco);
+  cursor: grab;
+}
+
+.passo-card__handle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.passo-card__texto {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--cor-texto);
+  line-height: 1.5;
+}
+
+.passo-card__texto::placeholder {
+  color: var(--cor-texto-fraco);
+}
+
+.passo-card__rodape {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-left: 28px;
+}
+
+.passo-card__numero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--cor-fundo);
+  color: var(--cor-texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.passo-card__anexar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.passo-card__anexar svg {
+  width: 15px;
+  height: 15px;
+}
+
+.passo-card__anexar:hover {
+  color: var(--cor-primaria-forte);
+}
+
+.passo-card__remover {
+  border: none;
+  background: none;
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.passo-card__remover:hover {
+  color: var(--cor-erro);
+}
+
+.passo-card__preview-area {
+  margin-top: 12px;
+  padding-left: 28px;
+}
+
+.passo-card__preview {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: 8px;
+  border: 1px solid var(--cor-borda);
+}
+
+.btn-adicionar-passo {
+  border: 1.5px dashed var(--cor-borda);
+  background: none;
+  border-radius: var(--raio-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cor-texto-suave);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn-adicionar-passo:hover {
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria-forte);
+}
