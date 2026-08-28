@@ -430,7 +430,7 @@ async function carregarSelectDaTabela(tabela, selectEl) {
 
 const LABELS_FILTRO = {
   tipo: "Tipo",
-  modulo: "Módulo",
+  modulo: "Caminho",
   categoria: "Categoria",
   criticidade: "Prioridade",
   autor: "Autor",
