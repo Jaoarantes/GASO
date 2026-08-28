@@ -337,7 +337,35 @@ function ativarParametros() {
 
 function ativarBlocoCodigo() {
   const area = document.getElementById("codigo-area");
+  const destaque = document.getElementById("codigo-highlight");
+  const numeros = document.getElementById("codigo-numeros");
   const copiarBtn = document.getElementById("codigo-copiar");
+
+  function atualizarNumeros() {
+    const totalLinhas = area.value.split("\n").length;
+    numeros.textContent = Array.from({ length: totalLinhas }, (_, i) => i + 1).join("\n");
+  }
+
+  function atualizarDestaque() {
+    destaque.textContent = area.value;
+    if (window.Prism) {
+      Prism.highlightElement(destaque);
+    }
+  }
+
+  function ajustarAlturaCodigo() {
+    area.style.height = "auto";
+    area.style.height = `${area.scrollHeight}px`;
+  }
+
+  area.addEventListener("input", () => {
+    atualizarNumeros();
+    atualizarDestaque();
+    ajustarAlturaCodigo();
+  });
+
+  atualizarNumeros();
+  atualizarDestaque();
 
   copiarBtn.addEventListener("click", async () => {
     try {
@@ -384,7 +412,13 @@ function criarCamposScript() {
           <span class="campo-label" style="margin-bottom: 0;">Bloco de código</span>
           <button class="codigo-bloco__copiar" type="button" id="codigo-copiar">Copiar</button>
         </div>
-        <textarea class="codigo-bloco__area" id="codigo-area" rows="10" spellcheck="false" placeholder="SELECT ..."></textarea>
+        <div class="codigo-editor">
+          <pre class="codigo-editor__numeros" id="codigo-numeros">1</pre>
+          <div class="codigo-editor__area-wrap">
+            <pre class="codigo-editor__highlight"><code class="language-sql" id="codigo-highlight"></code></pre>
+            <textarea class="codigo-editor__textarea" id="codigo-area" rows="6" spellcheck="false" placeholder="SELECT ..."></textarea>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -416,12 +450,33 @@ function criarCamposScript() {
       <label class="campo-label">Resultado esperado</label>
       <textarea class="campo-textarea" id="resultado-esperado" rows="3" placeholder="Descreva o que se espera ao rodar esse script."></textarea>
     </div>
+
+    <div class="campo-linha-dupla">
+      <div class="campo-grupo">
+        <label class="campo-label">Anexos</label>
+        <div class="anexos-dropzone" id="anexos-dropzone">
+          <span>Arraste arquivos aqui ou <button type="button" class="anexos-link" id="anexos-selecionar">selecione do computador</button></span>
+          <input class="anexos-input" type="file" id="anexos-input" multiple hidden>
+        </div>
+        <div class="anexos-lista" id="anexos-lista"></div>
+      </div>
+
+      <div class="campo-grupo">
+        <label class="campo-label">Soluções relacionadas</label>
+        <div class="vincular-campo">
+          <svg class="vincular-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input class="vincular-input" type="text" placeholder="Buscar registro para vincular...">
+        </div>
+        <div class="relacionadas-lista" id="relacionadas-lista"></div>
+      </div>
+    </div>
   `;
 
   ativarCampoTags("tags-campo", "tags-input");
   ativarBlocoCodigo();
   ativarParametros();
   ativarRisco();
+  ativarAnexos();
 }
 
 tipoCards.forEach((card) => {
