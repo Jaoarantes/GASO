@@ -313,6 +313,53 @@ function criarCamposErro() {
   ativarAnexos();
 }
 
+function criarParametroLinha() {
+  const linha = document.createElement("div");
+  linha.className = "parametro-linha";
+  linha.innerHTML = `
+    <input class="campo-input parametro-nome" type="text" placeholder=":p_parametro">
+    <input class="campo-input parametro-desc" type="text" placeholder="Descrição do parâmetro">
+    <button class="parametro-remover" type="button" aria-label="Remover parâmetro">×</button>
+  `;
+
+  linha.querySelector(".parametro-remover").addEventListener("click", () => linha.remove());
+
+  return linha;
+}
+
+function ativarParametros() {
+  const lista = document.getElementById("parametros-lista");
+  const addBtn = document.getElementById("add-parametro");
+
+  addBtn.addEventListener("click", () => lista.appendChild(criarParametroLinha()));
+  lista.appendChild(criarParametroLinha());
+}
+
+function ativarBlocoCodigo() {
+  const area = document.getElementById("codigo-area");
+  const copiarBtn = document.getElementById("codigo-copiar");
+
+  copiarBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(area.value);
+      copiarBtn.textContent = "Copiado!";
+      setTimeout(() => { copiarBtn.textContent = "Copiar"; }, 1500);
+    } catch (erro) {
+      console.error("Não foi possível copiar:", erro);
+    }
+  });
+}
+
+function ativarRisco() {
+  const riscoBtns = document.querySelectorAll(".risco-btn");
+  riscoBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      riscoBtns.forEach((b) => b.classList.remove("risco-btn--ativo"));
+      btn.classList.add("risco-btn--ativo");
+    });
+  });
+}
+
 function criarCamposScript() {
   registroCampos.innerHTML = `
     <div class="campo-titulo">
@@ -330,9 +377,51 @@ function criarCamposScript() {
         <input class="tags-input" type="text" id="tags-input" placeholder="adicionar...">
       </div>
     </div>
+
+    <div class="campo-grupo">
+      <div class="codigo-bloco">
+        <div class="codigo-bloco__topo">
+          <span class="campo-label" style="margin-bottom: 0;">Bloco de código</span>
+          <button class="codigo-bloco__copiar" type="button" id="codigo-copiar">Copiar</button>
+        </div>
+        <textarea class="codigo-bloco__area" id="codigo-area" rows="10" spellcheck="false" placeholder="SELECT ..."></textarea>
+      </div>
+    </div>
+
+    <div class="campo-grupo">
+      <label class="campo-label">Parâmetros a substituir</label>
+      <div class="parametros-lista" id="parametros-lista"></div>
+      <button class="btn-adicionar-passo" type="button" id="add-parametro">+ Adicionar parâmetro</button>
+    </div>
+
+    <div class="campo-linha-dupla">
+      <div class="campo-grupo">
+        <label class="campo-label">Nível de risco</label>
+        <div class="risco-grupo">
+          <button class="risco-btn risco-btn--baixo" data-risco="baixo" type="button">Baixo</button>
+          <button class="risco-btn risco-btn--medio" data-risco="medio" type="button">Médio</button>
+          <button class="risco-btn risco-btn--alto risco-btn--ativo" data-risco="alto" type="button">Alto</button>
+        </div>
+      </div>
+
+      <div class="campo-grupo">
+        <label class="campo-checkbox">
+          <input type="checkbox" id="reversivel-check">
+          É reversível
+        </label>
+      </div>
+    </div>
+
+    <div class="campo-grupo">
+      <label class="campo-label">Resultado esperado</label>
+      <textarea class="campo-textarea" id="resultado-esperado" rows="3" placeholder="Descreva o que se espera ao rodar esse script."></textarea>
+    </div>
   `;
 
   ativarCampoTags("tags-campo", "tags-input");
+  ativarBlocoCodigo();
+  ativarParametros();
+  ativarRisco();
 }
 
 tipoCards.forEach((card) => {
@@ -483,6 +572,15 @@ function coletarTags(containerId) {
     .map((chip) => chip.firstChild.textContent.trim());
 }
 
+function coletarParametros() {
+  return Array.from(document.querySelectorAll(".parametro-linha"))
+    .map((linha) => ({
+      nome: linha.querySelector(".parametro-nome").value.trim(),
+      descricao: linha.querySelector(".parametro-desc").value.trim()
+    }))
+    .filter((parametro) => parametro.nome || parametro.descricao);
+}
+
 const salvarBtn = document.getElementById("salvar-btn");
 const publicacaoErro = document.getElementById("publicacao-erro");
 
@@ -530,6 +628,11 @@ salvarBtn.addEventListener("click", async () => {
       tabelas_campos: coletarTags("tabelas-campo"),
       passos,
       anexos,
+      codigo: document.getElementById("codigo-area")?.value.trim() || "",
+      parametros: coletarParametros(),
+      risco: document.querySelector(".risco-btn--ativo")?.dataset.risco || null,
+      reversivel: document.getElementById("reversivel-check")?.checked || false,
+      resultado_esperado: document.getElementById("resultado-esperado")?.value.trim() || "",
       autor: document.getElementById("autor-input").value.trim(),
       categoria: document.getElementById("categoria-select").value || null,
       modulo: document.getElementById("modulo-select").value || null,

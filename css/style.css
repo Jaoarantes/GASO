@@ -1241,3 +1241,151 @@ body {
   gap: 8px;
   margin-top: 10px;
 }
+
+/* Bloco de código */
+
+.codigo-bloco {
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  overflow: hidden;
+}
+
+.codigo-bloco__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: var(--cor-fundo);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.codigo-bloco__copiar {
+  border: 1px solid var(--cor-borda);
+  background-color: var(--cor-superficie);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+}
+
+.codigo-bloco__copiar:hover {
+  background-color: var(--cor-fundo);
+}
+
+.codigo-bloco__area {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: vertical;
+  padding: 14px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--cor-texto);
+  background-color: #fbfbfc;
+}
+
+/* Parâmetros */
+
+.parametros-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.parametro-linha {
+  display: flex;
+  gap: 8px;
+}
+
+.parametro-nome {
+  flex: 0 0 160px;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.parametro-desc {
+  flex: 1;
+}
+
+.parametro-remover {
+  flex-shrink: 0;
+  width: 36px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto-fraco);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.parametro-remover:hover {
+  border-color: var(--cor-erro);
+  color: var(--cor-erro);
+}
+
+/* Nível de risco */
+
+.risco-grupo {
+  display: flex;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.risco-btn {
+  flex: 1;
+  border: none;
+  border-right: 1px solid var(--cor-borda);
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto-suave);
+  padding: 9px 0;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s var(--easing), color 0.2s var(--easing);
+}
+
+.risco-btn:last-child {
+  border-right: none;
+}
+
+.risco-btn:hover {
+  background-color: var(--cor-fundo);
+}
+
+.risco-btn--ativo.risco-btn--baixo {
+  background-color: #6b7280;
+  color: #ffffff;
+}
+
+.risco-btn--ativo.risco-btn--medio {
+  background-color: #d97706;
+  color: #ffffff;
+}
+
+.risco-btn--ativo.risco-btn--alto {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+.campo-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--cor-texto);
+  cursor: pointer;
+  margin-top: 28px;
+}
+
+.campo-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cor-primaria);
+  cursor: pointer;
+}
