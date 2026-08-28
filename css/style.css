@@ -147,7 +147,7 @@ body {
   font-size: 20px;
   font-weight: 600;
   color: var(--cor-texto);
-  padding: 20px 50px;
+  padding: 25px 50px;
 }
 
 /* Login */
@@ -277,4 +277,57 @@ body {
 .login__toggle-senha:hover {
   color: var(--cor-primaria);
   background-color: var(--cor-primaria-suave);
+}
+
+/* Busca */
+
+.busca-secao {
+  padding: 24px 32px;
+}
+
+.busca-contagem {
+  font-size: 13px;
+  color: var(--cor-primaria-forte);
+  margin-bottom: 12px;
+}
+
+.busca-barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 520px;
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--sombra-card);
+}
+
+.busca-icone {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--cor-texto-suave);
+}
+
+.busca-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 14px;
+  color: var(--cor-texto);
+}
+
+.busca-input::placeholder {
+  color: var(--cor-texto-fraco);
+}
+
+.busca-atalho {
+  flex-shrink: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 12px;
+  color: var(--cor-texto-fraco);
 }
