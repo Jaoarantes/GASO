@@ -691,6 +691,10 @@ body {
   margin-top: 8px;
 }
 
+.publicacao-novo-item[hidden] {
+  display: none;
+}
+
 .publicacao-novo-item .publicacao-select {
   cursor: text;
 }
