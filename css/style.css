@@ -323,11 +323,3 @@ body {
   color: var(--cor-texto-fraco);
 }
 
-.busca-atalho {
-  flex-shrink: 0;
-  border: 1px solid var(--cor-borda);
-  border-radius: 6px;
-  padding: 3px 7px;
-  font-size: 12px;
-  color: var(--cor-texto-fraco);
-}

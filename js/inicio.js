@@ -1,7 +1,6 @@
 import { supabase } from "./supabase-config.js";
 
 const contagemEl = document.getElementById("busca-contagem");
-const buscaInput = document.getElementById("busca-input");
 
 async function carregarContagem() {
   const { count } = await supabase
@@ -12,11 +11,3 @@ async function carregarContagem() {
 }
 
 carregarContagem();
-
-document.addEventListener("keydown", (event) => {
-  const teclaK = event.key.toLowerCase() === "k";
-  if ((event.metaKey || event.ctrlKey) && teclaK) {
-    event.preventDefault();
-    buscaInput.focus();
-  }
-});
