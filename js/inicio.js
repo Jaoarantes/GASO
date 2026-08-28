@@ -174,6 +174,7 @@ const painelEl = document.getElementById("painel");
 const painelTipoEl = document.getElementById("painel-tipo");
 const painelModuloEl = document.getElementById("painel-modulo");
 const painelCorpoEl = document.getElementById("painel-corpo");
+const painelErroEl = document.getElementById("painel-erro");
 const painelEditarBtn = document.getElementById("painel-editar");
 const painelExcluirBtn = document.getElementById("painel-excluir");
 const painelExpandirBtn = document.getElementById("painel-expandir");
@@ -276,6 +277,7 @@ function renderizarAnexosPainel(anexos) {
 
 function abrirPainel(solucao) {
   solucaoAberta = solucao;
+  painelErroEl.textContent = "";
 
   const tipoInfo = TIPO_INFO[solucao.tipo] || { label: solucao.tipo || "—", cor: "#6b7280", fundo: "#f2f3f5" };
   const criticidadeInfo = CRITICIDADE_INFO[solucao.criticidade];
@@ -355,12 +357,14 @@ painelExcluirBtn.addEventListener("click", async () => {
   const confirmado = await abrirConfirmacaoExclusao();
   if (!confirmado) return;
 
+  painelErroEl.textContent = "";
   painelExcluirBtn.disabled = true;
   const { error } = await supabase.from("solucoes").delete().eq("id", solucaoAberta.id);
   painelExcluirBtn.disabled = false;
 
   if (error) {
     console.error("Erro ao excluir solução:", error);
+    painelErroEl.textContent = "Não foi possível excluir. Verifique as permissões da tabela no Supabase.";
     return;
   }
 

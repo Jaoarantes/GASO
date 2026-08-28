@@ -1988,3 +1988,13 @@ select.publicacao-select {
   background-color: var(--cor-texto-fraco);
   cursor: not-allowed;
 }
+
+.painel__erro {
+  font-size: 13px;
+  color: var(--cor-erro);
+  padding: 10px 20px 0;
+}
+
+.painel__erro:empty {
+  display: none;
+}
