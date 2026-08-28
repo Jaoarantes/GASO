@@ -100,18 +100,31 @@
         <div class="publicacao-campo">
           <label class="publicacao-label">Módulo do ERP</label>
           <div class="publicacao-campo-linha">
-            <select class="publicacao-select">
+            <select class="publicacao-select" id="modulo-select">
               <option>Faturamento</option>
             </select>
-            <button class="publicacao-add" type="button" aria-label="Adicionar módulo">+</button>
+            <button class="publicacao-add" type="button" id="modulo-add-btn" aria-label="Adicionar módulo">+</button>
+          </div>
+          <div class="publicacao-novo-item" id="modulo-novo-form" hidden>
+            <input class="publicacao-select" type="text" id="modulo-novo-input" placeholder="Nome do novo módulo">
+            <button class="btn-secundario-pequeno" type="button" id="modulo-novo-confirmar">Adicionar</button>
+            <button class="btn-secundario-pequeno" type="button" id="modulo-novo-cancelar">Cancelar</button>
           </div>
         </div>
 
         <div class="publicacao-campo">
           <label class="publicacao-label">Categoria</label>
-          <select class="publicacao-select">
-            <option>Faturamento / NF-e</option>
-          </select>
+          <div class="publicacao-campo-linha">
+            <select class="publicacao-select" id="categoria-select">
+              <option>Faturamento / NF-e</option>
+            </select>
+            <button class="publicacao-add" type="button" id="categoria-add-btn" aria-label="Adicionar categoria">+</button>
+          </div>
+          <div class="publicacao-novo-item" id="categoria-novo-form" hidden>
+            <input class="publicacao-select" type="text" id="categoria-novo-input" placeholder="Nome da nova categoria">
+            <button class="btn-secundario-pequeno" type="button" id="categoria-novo-confirmar">Adicionar</button>
+            <button class="btn-secundario-pequeno" type="button" id="categoria-novo-cancelar">Cancelar</button>
+          </div>
         </div>
 
         <div class="publicacao-campo">
@@ -125,18 +138,8 @@
         </div>
 
         <div class="publicacao-campo">
-          <label class="publicacao-label">Visibilidade</label>
-          <select class="publicacao-select">
-            <option>Todo o time</option>
-          </select>
-        </div>
-
-        <div class="publicacao-campo">
-          <label class="publicacao-label">Revisor</label>
-          <div class="revisor-campo">
-            <span class="revisor-avatar">JP</span>
-            <span class="revisor-nome">Juliana Prado</span>
-          </div>
+          <label class="publicacao-label">Autor</label>
+          <input class="publicacao-input" type="text" id="autor-input" placeholder="Nome de quem resolveu">
         </div>
 
         <div class="publicacao-divisor"></div>
@@ -146,8 +149,7 @@
           Salvo automaticamente há 12s
         </p>
 
-        <button class="publicacao-btn publicacao-btn--principal" type="button">Publicar</button>
-        <button class="publicacao-btn publicacao-btn--secundario" type="button">Salvar rascunho</button>
+        <button class="publicacao-btn publicacao-btn--principal" type="button">Salvar</button>
       </aside>
     </div>
   </main>

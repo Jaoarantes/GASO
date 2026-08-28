@@ -338,3 +338,62 @@ criticidadeBtns.forEach((btn) => {
     btn.classList.add("criticidade-btn--ativo");
   });
 });
+
+function ativarAdicionarOpcao({ select, addBtn, form, input, confirmar, cancelar }) {
+  const selectEl = document.getElementById(select);
+  const addBtnEl = document.getElementById(addBtn);
+  const formEl = document.getElementById(form);
+  const inputEl = document.getElementById(input);
+  const confirmarEl = document.getElementById(confirmar);
+  const cancelarEl = document.getElementById(cancelar);
+
+  function fechar() {
+    formEl.hidden = true;
+    inputEl.value = "";
+  }
+
+  addBtnEl.addEventListener("click", () => {
+    formEl.hidden = false;
+    inputEl.focus();
+  });
+
+  cancelarEl.addEventListener("click", fechar);
+
+  confirmarEl.addEventListener("click", () => {
+    const valor = inputEl.value.trim();
+    if (!valor) return;
+
+    const opcao = document.createElement("option");
+    opcao.value = valor;
+    opcao.textContent = valor;
+    selectEl.appendChild(opcao);
+    selectEl.value = valor;
+
+    fechar();
+  });
+
+  inputEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      confirmarEl.click();
+    }
+  });
+}
+
+ativarAdicionarOpcao({
+  select: "modulo-select",
+  addBtn: "modulo-add-btn",
+  form: "modulo-novo-form",
+  input: "modulo-novo-input",
+  confirmar: "modulo-novo-confirmar",
+  cancelar: "modulo-novo-cancelar"
+});
+
+ativarAdicionarOpcao({
+  select: "categoria-select",
+  addBtn: "categoria-add-btn",
+  form: "categoria-novo-form",
+  input: "categoria-novo-input",
+  confirmar: "categoria-novo-confirmar",
+  cancelar: "categoria-novo-cancelar"
+});
