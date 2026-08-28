@@ -599,16 +599,6 @@ function ativarSelecaoComCadastro({ tabela, select, addBtn, form, input, confirm
   return { selectEl, pronto };
 }
 
-const moduloApi = ativarSelecaoComCadastro({
-  tabela: "modulos",
-  select: "modulo-select",
-  addBtn: "modulo-add-btn",
-  form: "modulo-novo-form",
-  input: "modulo-novo-input",
-  confirmar: "modulo-novo-confirmar",
-  cancelar: "modulo-novo-cancelar"
-});
-
 const categoriaApi = ativarSelecaoComCadastro({
   tabela: "categorias",
   select: "categoria-select",
@@ -722,7 +712,7 @@ salvarBtn.addEventListener("click", async () => {
       resultado_esperado: document.getElementById("resultado-esperado")?.value.trim() || "",
       autor: document.getElementById("autor-input").value.trim(),
       categoria: document.getElementById("categoria-select").value || null,
-      modulo: document.getElementById("modulo-select").value || null,
+      modulo: document.getElementById("caminho-input").value.trim() || null,
       criticidade: document.querySelector(".criticidade-btn--ativo")?.dataset.criticidade || null
     };
 
@@ -783,9 +773,7 @@ async function iniciarModoEdicao() {
   }
 
   document.getElementById("autor-input").value = data.autor || "";
-
-  await moduloApi.pronto;
-  if (data.modulo) moduloApi.selectEl.value = data.modulo;
+  document.getElementById("caminho-input").value = data.modulo || "";
 
   await categoriaApi.pronto;
   if (data.categoria) categoriaApi.selectEl.value = data.categoria;

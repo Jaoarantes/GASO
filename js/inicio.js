@@ -550,6 +550,7 @@ async function carregarContagemESolucoes() {
   contagemEl.textContent = `${(count || 0).toLocaleString("pt-BR")} soluções cadastradas`;
 
   preencherFiltroDinamico(filtroAutor, solucoesTodas.map((s) => s.autor));
+  preencherFiltroDinamico(filtroModulo, solucoesTodas.map((s) => s.modulo));
 
   renderizarLista();
 
@@ -561,7 +562,6 @@ async function carregarContagemESolucoes() {
 }
 
 carregarContagemESolucoes();
-carregarSelectDaTabela("modulos", filtroModulo);
 carregarSelectDaTabela("categorias", filtroCategoria);
 
 [filtroTipo, filtroModulo, filtroCategoria, filtroCriticidade, filtroAutor, filtroPeriodo].forEach((select) => {
