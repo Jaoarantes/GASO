@@ -47,47 +47,96 @@ function renumerarPassos() {
   });
 }
 
+const MAX_IMAGENS_POR_PASSO = 3;
+
+function atualizarImagensDoPasso(card) {
+  const imagensArea = card.querySelector(".passo-card__imagens");
+  const anexarBtn = card.querySelector(".passo-card__anexar");
+  const imagens = card._imagens;
+
+  imagensArea.innerHTML = "";
+  imagensArea.hidden = imagens.length === 0;
+
+  imagens.forEach((arquivo, indice) => {
+    const item = document.createElement("div");
+    item.className = "passo-card__imagem-item";
+
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(arquivo);
+    img.alt = `Imagem ${indice + 1} do passo`;
+
+    const removerBtn = document.createElement("button");
+    removerBtn.type = "button";
+    removerBtn.className = "passo-card__imagem-remover";
+    removerBtn.setAttribute("aria-label", "Remover imagem");
+    removerBtn.textContent = "×";
+    removerBtn.addEventListener("click", () => {
+      imagens.splice(indice, 1);
+      atualizarImagensDoPasso(card);
+    });
+
+    item.appendChild(img);
+    item.appendChild(removerBtn);
+    imagensArea.appendChild(item);
+  });
+
+  const atingiuLimite = imagens.length >= MAX_IMAGENS_POR_PASSO;
+  anexarBtn.disabled = atingiuLimite;
+  anexarBtn.lastChild.textContent = atingiuLimite ? " Máximo de 3 imagens" : " Anexar imagem";
+}
+
+function adicionarImagensAoPasso(card, novosArquivos) {
+  for (const arquivo of novosArquivos) {
+    if (card._imagens.length >= MAX_IMAGENS_POR_PASSO) break;
+    card._imagens.push(arquivo);
+  }
+  atualizarImagensDoPasso(card);
+}
+
 function criarPassoCard() {
   const card = document.createElement("div");
   card.className = "passo-card";
   card.draggable = true;
+  card._imagens = [];
   card.innerHTML = `
     <div class="passo-card__topo">
       <span class="passo-card__handle" title="Arraste para reordenar">
         <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.3"/><circle cx="15" cy="6" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="18" r="1.3"/><circle cx="15" cy="18" r="1.3"/></svg>
       </span>
-      <textarea class="passo-card__texto" rows="1" placeholder="Descreva esse passo..."></textarea>
+      <textarea class="passo-card__texto" rows="1" placeholder="Descreva esse passo... (cole uma imagem com Ctrl+V)"></textarea>
     </div>
     <div class="passo-card__rodape">
       <span class="passo-card__numero"></span>
       <button class="passo-card__anexar" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg>
-        Anexar imagem
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg><span> Anexar imagem</span>
       </button>
       <button class="passo-card__remover" type="button">Remover passo</button>
-      <input class="passo-card__input-imagem" type="file" accept="image/*" hidden>
+      <input class="passo-card__input-imagem" type="file" accept="image/*" multiple hidden>
     </div>
-    <div class="passo-card__preview-area" hidden>
-      <img class="passo-card__preview" alt="Prévia do passo">
-    </div>
+    <div class="passo-card__imagens" hidden></div>
   `;
 
   const textarea = card.querySelector(".passo-card__texto");
   textarea.addEventListener("input", () => ajustarAltura(textarea));
 
+  textarea.addEventListener("paste", (event) => {
+    const item = Array.from(event.clipboardData.items).find((i) => i.type.startsWith("image/"));
+    if (!item) return;
+    event.preventDefault();
+    adicionarImagensAoPasso(card, [item.getAsFile()]);
+  });
+
   const anexarBtn = card.querySelector(".passo-card__anexar");
   const inputImagem = card.querySelector(".passo-card__input-imagem");
-  const previewArea = card.querySelector(".passo-card__preview-area");
-  const preview = card.querySelector(".passo-card__preview");
 
   anexarBtn.addEventListener("click", () => inputImagem.click());
 
   inputImagem.addEventListener("change", () => {
-    const arquivo = inputImagem.files[0];
-    if (!arquivo) return;
-    preview.src = URL.createObjectURL(arquivo);
-    previewArea.hidden = false;
+    adicionarImagensAoPasso(card, Array.from(inputImagem.files));
+    inputImagem.value = "";
   });
+
+  atualizarImagensDoPasso(card);
 
   card.querySelector(".passo-card__remover").addEventListener("click", () => {
     card.remove();

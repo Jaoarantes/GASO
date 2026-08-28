@@ -992,6 +992,11 @@ body {
   color: var(--cor-primaria-forte);
 }
 
+.passo-card__anexar:disabled {
+  color: var(--cor-texto-fraco);
+  cursor: not-allowed;
+}
+
 .passo-card__remover {
   border: none;
   background: none;
@@ -1005,16 +1010,49 @@ body {
   color: var(--cor-erro);
 }
 
-.passo-card__preview-area {
+.passo-card__imagens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-top: 12px;
   padding-left: 28px;
 }
 
-.passo-card__preview {
-  max-width: 100%;
-  max-height: 260px;
+.passo-card__imagem-item {
+  position: relative;
+  width: 110px;
+  height: 80px;
+}
+
+.passo-card__imagem-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: 8px;
   border: 1px solid var(--cor-borda);
+}
+
+.passo-card__imagem-remover {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--cor-superficie);
+  border-radius: 50%;
+  background-color: var(--cor-erro);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.passo-card__imagem-remover:hover {
+  background-color: #a81f1f;
 }
 
 .btn-adicionar-passo {
