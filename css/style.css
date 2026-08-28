@@ -282,16 +282,13 @@ body {
 /* Busca */
 
 .busca-secao {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 24px 32px;
+  padding: 24px 15px;
 }
 
 .busca-contagem {
   font-size: 13px;
   color: var(--cor-primaria-forte);
-  white-space: nowrap;
+  margin-bottom: 12px;
 }
 
 .busca-barra {
