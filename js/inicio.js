@@ -11,3 +11,27 @@ async function carregarContagem() {
 }
 
 carregarContagem();
+
+const ordenarBtn = document.getElementById("ordenar-btn");
+const ordenarTexto = document.getElementById("ordenar-texto");
+
+let ordenacao = "recentes";
+
+ordenarBtn.addEventListener("click", () => {
+  ordenacao = ordenacao === "recentes" ? "antigas" : "recentes";
+  ordenarTexto.textContent = ordenacao === "recentes" ? "Mais recentes" : "Mais antigas";
+});
+
+const visualizacaoGradeBtn = document.getElementById("visualizacao-grade");
+const visualizacaoListaBtn = document.getElementById("visualizacao-lista");
+
+function definirVisualizacao(modo) {
+  localStorage.setItem("visualizacao", modo);
+  visualizacaoGradeBtn.classList.toggle("visualizacao-btn--ativo", modo === "grade");
+  visualizacaoListaBtn.classList.toggle("visualizacao-btn--ativo", modo === "lista");
+}
+
+visualizacaoGradeBtn.addEventListener("click", () => definirVisualizacao("grade"));
+visualizacaoListaBtn.addEventListener("click", () => definirVisualizacao("lista"));
+
+definirVisualizacao(localStorage.getItem("visualizacao") || "grade");

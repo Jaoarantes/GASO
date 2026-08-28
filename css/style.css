@@ -322,3 +322,72 @@ body {
 .busca-input::placeholder {
   color: var(--cor-texto-fraco);
 }
+
+.busca-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.busca-barra {
+  flex: 1 1 auto;
+}
+
+.ordenar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cor-primaria-forte);
+  cursor: pointer;
+}
+
+.ordenar-btn:hover {
+  background-color: var(--cor-fundo);
+}
+
+.ordenar-icone {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.visualizacao-toggle {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.visualizacao-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+}
+
+.visualizacao-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.visualizacao-btn:first-child {
+  border-right: 1px solid var(--cor-borda);
+}
+
+.visualizacao-btn--ativo {
+  background-color: var(--cor-fundo);
+  color: var(--cor-texto);
+}
