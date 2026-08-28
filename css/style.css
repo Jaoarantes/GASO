@@ -1909,3 +1909,82 @@ select.publicacao-select {
   box-shadow: var(--sombra-card);
   cursor: default;
 }
+
+/* Modal de confirmação */
+
+.confirmar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(10, 10, 14, 0.5);
+  padding: 20px;
+}
+
+.confirmar-overlay[hidden] {
+  display: none;
+}
+
+.confirmar-modal {
+  width: 100%;
+  max-width: 380px;
+  background-color: var(--cor-superficie);
+  border-radius: var(--raio-lg);
+  box-shadow: var(--sombra-card);
+  padding: 24px;
+}
+
+.confirmar-modal__titulo {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--cor-texto);
+  margin-bottom: 10px;
+}
+
+.confirmar-modal__texto {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.confirmar-modal__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirmar-modal__cancelar {
+  border: 1px solid var(--cor-borda);
+  background-color: var(--cor-superficie);
+  border-radius: var(--raio-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.confirmar-modal__cancelar:hover {
+  background-color: var(--cor-fundo);
+}
+
+.confirmar-modal__confirmar {
+  border: none;
+  background-color: var(--cor-erro);
+  border-radius: var(--raio-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.confirmar-modal__confirmar:disabled {
+  background-color: var(--cor-texto-fraco);
+  cursor: not-allowed;
+}

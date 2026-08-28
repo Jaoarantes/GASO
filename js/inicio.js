@@ -124,6 +124,51 @@ lightboxEl.addEventListener("click", (event) => {
   if (event.target === lightboxEl) fecharLightbox();
 });
 
+const confirmarOverlay = document.getElementById("confirmar-overlay");
+const confirmarCancelarBtn = document.getElementById("confirmar-cancelar");
+const confirmarExcluirBtn = document.getElementById("confirmar-excluir");
+
+let confirmarResolver = null;
+let confirmarTimer = null;
+
+function abrirConfirmacaoExclusao() {
+  return new Promise((resolve) => {
+    confirmarResolver = resolve;
+    confirmarOverlay.hidden = false;
+
+    clearInterval(confirmarTimer);
+    let segundos = 5;
+    confirmarExcluirBtn.disabled = true;
+    confirmarExcluirBtn.textContent = `Aguarde ${segundos}s...`;
+
+    confirmarTimer = setInterval(() => {
+      segundos -= 1;
+      if (segundos <= 0) {
+        clearInterval(confirmarTimer);
+        confirmarExcluirBtn.disabled = false;
+        confirmarExcluirBtn.textContent = "Sim, excluir";
+      } else {
+        confirmarExcluirBtn.textContent = `Aguarde ${segundos}s...`;
+      }
+    }, 1000);
+  });
+}
+
+function fecharConfirmacaoExclusao(resultado) {
+  confirmarOverlay.hidden = true;
+  clearInterval(confirmarTimer);
+  if (confirmarResolver) {
+    confirmarResolver(resultado);
+    confirmarResolver = null;
+  }
+}
+
+confirmarCancelarBtn.addEventListener("click", () => fecharConfirmacaoExclusao(false));
+confirmarExcluirBtn.addEventListener("click", () => fecharConfirmacaoExclusao(true));
+confirmarOverlay.addEventListener("click", (event) => {
+  if (event.target === confirmarOverlay) fecharConfirmacaoExclusao(false);
+});
+
 const painelOverlay = document.getElementById("painel-overlay");
 const painelEl = document.getElementById("painel");
 const painelTipoEl = document.getElementById("painel-tipo");
@@ -307,7 +352,8 @@ painelEditarBtn.addEventListener("click", () => {
 
 painelExcluirBtn.addEventListener("click", async () => {
   if (!solucaoAberta) return;
-  if (!window.confirm("Excluir esta solução? Essa ação não pode ser desfeita.")) return;
+  const confirmado = await abrirConfirmacaoExclusao();
+  if (!confirmado) return;
 
   painelExcluirBtn.disabled = true;
   const { error } = await supabase.from("solucoes").delete().eq("id", solucaoAberta.id);
