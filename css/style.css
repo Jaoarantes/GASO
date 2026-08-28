@@ -1,5 +1,19 @@
 :root {
   --altura-topo: 84px;
+  --cor-fundo: #f2f3f5;
+  --cor-superficie: #ffffff;
+  --cor-borda: #d1d1d1;
+  --cor-texto: #1a1a1a;
+  --cor-texto-suave: #6b6d76;
+  --cor-primaria: #e84e0e;
+}
+
+[data-theme="dark"] {
+  --cor-fundo: #16171b;
+  --cor-superficie: #1f2024;
+  --cor-borda: #34353a;
+  --cor-texto: #f1f1f1;
+  --cor-texto-suave: #9a9ca5;
 }
 
 * {
@@ -9,8 +23,10 @@
 }
 
 body {
-  background-color: #f2f3f5;
+  background-color: var(--cor-fundo);
+  color: var(--cor-texto);
   min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar {
@@ -19,13 +35,80 @@ body {
   left: 0;
   width: 20%;
   height: 100vh;
-  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cor-superficie);
+  border-right: 1px solid var(--cor-borda);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sidebar__link:hover {
+  background-color: var(--cor-fundo);
+}
+
+.sidebar__link--ativo {
+  background-color: var(--cor-fundo);
+  border-left-color: var(--cor-primaria);
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.sidebar__link-icone {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.sidebar__rodape {
+  margin-top: auto;
+  padding: 16px 12px;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.sidebar__tema {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sidebar__tema:hover {
+  background-color: var(--cor-fundo);
 }
 
 .sidebar__topo {
   height: var(--altura-topo);
   padding: 25px 20px;
-  border-bottom: 1px solid #d1d1d1;
+  border-bottom: 1px solid var(--cor-borda);
 }
 
 .header {
@@ -34,8 +117,9 @@ body {
   left: 20%;
   right: 0;
   height: var(--altura-topo);
-  background-color: #ffffff;
-  border-bottom: 1px solid #d1d1d1;
+  background-color: var(--cor-superficie);
+  border-bottom: 1px solid var(--cor-borda);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .sidebar__logo {
