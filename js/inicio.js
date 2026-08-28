@@ -30,8 +30,8 @@ const TIPO_INFO = {
 
 const CRITICIDADE_INFO = {
   baixa: { label: "Baixa", cor: "#6b7280" },
-  media: { label: "Média", cor: "#2563eb" },
-  alta: { label: "Alta", cor: "#9c7a45" },
+  media: { label: "Média", cor: "#ca8a04" },
+  alta: { label: "Alta", cor: "#ea580c" },
   critica: { label: "Crítica", cor: "#dc2626" }
 };
 
@@ -248,7 +248,7 @@ function abrirPainel(solucao) {
 
     <div class="painel__info-grid">
       <div>
-        <span class="painel__campo-label">Criticidade</span>
+        <span class="painel__campo-label">Prioridade</span>
         <p class="painel__campo-valor" style="color:${criticidadeInfo?.cor || "inherit"};">${criticidadeInfo?.label || "Não informado"}</p>
       </div>
       <div>
@@ -355,7 +355,7 @@ const LABELS_FILTRO = {
   tipo: "Tipo",
   modulo: "Módulo",
   categoria: "Categoria",
-  criticidade: "Criticidade",
+  criticidade: "Prioridade",
   autor: "Autor",
   periodo: "Período"
 };
@@ -377,6 +377,7 @@ function renderizarFiltrosAplicados() {
 
   if (ativos.length === 0) {
     filtrosAplicadosEl.hidden = true;
+    filtrosChipsEl.innerHTML = "";
     return;
   }
 
@@ -390,7 +391,7 @@ function renderizarFiltrosAplicados() {
     const rotulo = chave === "periodo"
       ? `Período · Últimos ${valor} dias`
       : chave === "criticidade"
-        ? `Criticidade · ${CRITICIDADE_INFO[valor]?.label || valor}`
+        ? `Prioridade · ${CRITICIDADE_INFO[valor]?.label || valor}`
         : chave === "tipo"
           ? `Tipo · ${TIPO_INFO[valor]?.label || valor}`
           : `${LABELS_FILTRO[chave]} · ${valor}`;
@@ -430,11 +431,13 @@ function renderizarLista() {
     }
 
     if (termo) {
+      const termos = termo.split(/\s+/).filter(Boolean);
       const alvo = [
         solucao.titulo, solucao.erro, solucao.categoria, solucao.modulo,
-        ...(solucao.sintomas || []), ...(solucao.tabelas_campos || [])
-      ].join(" ").toLowerCase();
-      if (!alvo.includes(termo)) return false;
+        ...(Array.isArray(solucao.sintomas) ? solucao.sintomas : []),
+        ...(Array.isArray(solucao.tabelas_campos) ? solucao.tabelas_campos : [])
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (!termos.every((t) => alvo.includes(t))) return false;
     }
 
     return true;
