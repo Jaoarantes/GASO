@@ -282,7 +282,7 @@ body {
 /* Busca */
 
 .busca-secao {
-  padding: 24px 15px 24px 0;
+  padding: 24px 20px;
 }
 
 .busca-contagem {
@@ -326,7 +326,7 @@ body {
 .busca-linha {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 50px;
 }
 
 .busca-barra {
