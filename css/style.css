@@ -1455,6 +1455,13 @@ body {
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   padding: 18px;
+  cursor: pointer;
+  transition: border-color 0.2s var(--easing), box-shadow 0.2s var(--easing);
+}
+
+.solucao-card:hover {
+  border-color: var(--cor-texto-fraco);
+  box-shadow: var(--sombra-card);
 }
 
 .solucao-card__topo {
@@ -1472,12 +1479,6 @@ body {
   font-weight: 600;
 }
 
-.solucao-card__topo-direita {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .criticidade-pill {
   display: flex;
   align-items: center;
@@ -1490,35 +1491,6 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-}
-
-.favorito-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: none;
-  color: var(--cor-texto-fraco);
-  cursor: pointer;
-}
-
-.favorito-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.favorito-btn:hover {
-  color: var(--cor-primaria);
-}
-
-.favorito-btn--ativo {
-  color: var(--cor-primaria);
-}
-
-.favorito-btn--ativo svg {
-  fill: currentColor;
 }
 
 .solucao-card__titulo {
@@ -1596,4 +1568,292 @@ body {
   color: var(--cor-texto-fraco);
   flex-shrink: 0;
   margin-left: auto;
+}
+
+/* Painel de visualização */
+
+.painel-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(10, 10, 14, 0.4);
+  z-index: 1000;
+}
+
+.painel-overlay[hidden] {
+  display: none;
+}
+
+.painel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cor-superficie);
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.12);
+  transition: max-width 0.2s var(--easing);
+}
+
+.painel--expandido {
+  max-width: 920px;
+}
+
+.painel__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.painel__topo-selos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.painel__modulo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.painel__topo-acoes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.painel__icone-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+}
+
+.painel__icone-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.painel__icone-btn:hover {
+  background-color: var(--cor-fundo);
+}
+
+.painel__corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+}
+
+.painel__titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin-bottom: 10px;
+}
+
+.painel__descricao {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.painel__info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background-color: var(--cor-fundo);
+  border-radius: var(--raio-sm);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.painel__grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.painel__campo-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cor-texto-fraco);
+  margin-bottom: 4px;
+}
+
+.painel__campo-valor {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.painel__secao {
+  margin-bottom: 24px;
+}
+
+.painel__secao-titulo {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin-bottom: 10px;
+}
+
+.painel__texto {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+  line-height: 1.6;
+}
+
+.painel__vazio-secao {
+  font-size: 13px;
+  color: var(--cor-texto-fraco);
+}
+
+.painel-passos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.painel-passo {
+  display: flex;
+  gap: 12px;
+}
+
+.painel-passo__numero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--cor-primaria);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.painel-passo__conteudo {
+  flex: 1;
+}
+
+.painel-passo__texto {
+  font-size: 14px;
+  color: var(--cor-texto);
+  line-height: 1.5;
+}
+
+.painel-passo__galeria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.painel-passo__imagem {
+  width: 110px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--cor-borda);
+  cursor: zoom-in;
+}
+
+.painel-codigo {
+  background-color: #fbfbfc;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  padding: 14px;
+  max-height: 320px;
+  overflow: auto;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--cor-texto);
+  white-space: pre;
+}
+
+.painel-parametros {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.painel-parametro {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+.painel-parametro__nome {
+  font-family: "Courier New", Courier, monospace;
+  color: var(--cor-primaria-forte);
+  flex-shrink: 0;
+}
+
+.painel-parametro__desc {
+  color: var(--cor-texto-suave);
+}
+
+.painel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.painel-anexos {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.painel-anexos a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-primaria-forte);
+  text-decoration: none;
+}
+
+.painel-anexos a:hover {
+  text-decoration: underline;
+}
+
+.painel__rodape {
+  padding: 14px 20px;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.painel__copiar {
+  border: 1px solid var(--cor-borda);
+  background-color: var(--cor-superficie);
+  border-radius: var(--raio-sm);
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.painel__copiar:hover {
+  background-color: var(--cor-fundo);
 }

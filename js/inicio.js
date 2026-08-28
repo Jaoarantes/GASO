@@ -35,6 +35,12 @@ const CRITICIDADE_INFO = {
   critica: { label: "Crítica", cor: "#dc2626" }
 };
 
+const RISCO_INFO = {
+  baixo: { label: "Baixo", cor: "#6b7280" },
+  medio: { label: "Médio", cor: "#d97706" },
+  alto: { label: "Alto", cor: "#dc2626" }
+};
+
 function formatarTempoRelativo(dataIso) {
   if (!dataIso) return "";
   const diffMs = Date.now() - new Date(dataIso).getTime();
@@ -80,12 +86,7 @@ function criarCard(solucao) {
   card.innerHTML = `
     <div class="solucao-card__topo">
       <span class="tipo-pill" style="background-color:${tipoInfo.fundo}; color:${tipoInfo.cor};">${tipoInfo.label}</span>
-      <div class="solucao-card__topo-direita">
-        ${criticidadeHtml}
-        <button class="favorito-btn" type="button" aria-label="Favoritar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.2.9-4.5 4.4 1.1 6.1L12 17l-5.5 3 1.1-6.1L3.1 9.5l6.2-.9z"/></svg>
-        </button>
-      </div>
+      ${criticidadeHtml}
     </div>
 
     <h3 class="solucao-card__titulo">${solucao.titulo || "Sem título"}</h3>
@@ -100,13 +101,208 @@ function criarCard(solucao) {
     </div>
   `;
 
-  card.querySelector(".favorito-btn").addEventListener("click", (event) => {
-    event.stopPropagation();
-    event.currentTarget.classList.toggle("favorito-btn--ativo");
-  });
+  card.addEventListener("click", () => abrirPainel(solucao));
 
   return card;
 }
+
+const painelOverlay = document.getElementById("painel-overlay");
+const painelEl = document.getElementById("painel");
+const painelTipoEl = document.getElementById("painel-tipo");
+const painelModuloEl = document.getElementById("painel-modulo");
+const painelCorpoEl = document.getElementById("painel-corpo");
+const painelExpandirBtn = document.getElementById("painel-expandir");
+const painelFecharBtn = document.getElementById("painel-fechar");
+const painelCopiarBtn = document.getElementById("painel-copiar-link");
+
+let solucaoAberta = null;
+
+function formatarData(dataIso) {
+  if (!dataIso) return "";
+  return new Date(dataIso).toLocaleDateString("pt-BR");
+}
+
+function renderizarGaleriaPasso(imagens) {
+  if (!imagens || imagens.length === 0) return "";
+  const itens = imagens.map((img) => `<img class="painel-passo__imagem" src="${img.url}" alt="${img.nome || "Imagem do passo"}">`).join("");
+  return `<div class="painel-passo__galeria">${itens}</div>`;
+}
+
+function renderizarCorpoErro(solucao) {
+  const passos = solucao.passos || [];
+  const passosHtml = passos.length === 0
+    ? "<p class=\"painel__vazio-secao\">Nenhum passo cadastrado.</p>"
+    : passos.map((passo) => `
+        <div class="painel-passo">
+          <span class="painel-passo__numero">${passo.ordem}</span>
+          <div class="painel-passo__conteudo">
+            <p class="painel-passo__texto">${passo.texto || ""}</p>
+            ${renderizarGaleriaPasso(passo.imagens)}
+          </div>
+        </div>
+      `).join("");
+
+  return `
+    <div class="painel__secao">
+      <span class="painel__secao-titulo">Solução</span>
+      <div class="painel-passos">${passosHtml}</div>
+    </div>
+  `;
+}
+
+function renderizarCorpoScript(solucao) {
+  const parametros = solucao.parametros || [];
+  const parametrosHtml = parametros.length === 0
+    ? ""
+    : `
+      <div class="painel__secao">
+        <span class="painel__secao-titulo">Parâmetros a substituir</span>
+        <div class="painel-parametros">
+          ${parametros.map((p) => `
+            <div class="painel-parametro">
+              <code class="painel-parametro__nome">${p.nome}</code>
+              <span class="painel-parametro__desc">${p.descricao}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+
+  const riscoInfo = RISCO_INFO[solucao.risco];
+
+  return `
+    <div class="painel__secao">
+      <span class="painel__secao-titulo">Código</span>
+      <pre class="painel-codigo"><code>${(solucao.codigo || "").replace(/</g, "&lt;")}</code></pre>
+    </div>
+
+    ${parametrosHtml}
+
+    <div class="painel__grid-2">
+      <div>
+        <span class="painel__campo-label">Nível de risco</span>
+        <p class="painel__campo-valor" style="color:${riscoInfo?.cor || "inherit"};">${riscoInfo?.label || "Não informado"}</p>
+      </div>
+      <div>
+        <span class="painel__campo-label">Reversível</span>
+        <p class="painel__campo-valor">${solucao.reversivel ? "Sim" : "Não"}</p>
+      </div>
+    </div>
+
+    ${solucao.resultado_esperado ? `
+      <div class="painel__secao">
+        <span class="painel__secao-titulo">Resultado esperado</span>
+        <p class="painel__texto">${solucao.resultado_esperado}</p>
+      </div>
+    ` : ""}
+  `;
+}
+
+function renderizarAnexosPainel(anexos) {
+  if (!anexos || anexos.length === 0) return "";
+  const itens = anexos.map((anexo) => `<li><a href="${anexo.url}" target="_blank" rel="noopener">${anexo.nome}</a></li>`).join("");
+  return `
+    <div class="painel__secao">
+      <span class="painel__secao-titulo">Anexos</span>
+      <ul class="painel-anexos">${itens}</ul>
+    </div>
+  `;
+}
+
+function abrirPainel(solucao) {
+  solucaoAberta = solucao;
+
+  const tipoInfo = TIPO_INFO[solucao.tipo] || { label: solucao.tipo || "—", cor: "#6b7280", fundo: "#f2f3f5" };
+  const criticidadeInfo = CRITICIDADE_INFO[solucao.criticidade];
+  const tags = [...(solucao.sintomas || []), ...(solucao.tabelas_campos || [])];
+
+  painelTipoEl.textContent = tipoInfo.label;
+  painelTipoEl.style.backgroundColor = tipoInfo.fundo;
+  painelTipoEl.style.color = tipoInfo.cor;
+  painelModuloEl.textContent = solucao.modulo || "";
+  painelModuloEl.hidden = !solucao.modulo;
+
+  const corpoTipo = solucao.tipo === "script" ? renderizarCorpoScript(solucao) : renderizarCorpoErro(solucao);
+
+  painelCorpoEl.innerHTML = `
+    <h2 class="painel__titulo">${solucao.titulo || "Sem título"}</h2>
+    <p class="painel__descricao">${solucao.erro || ""}</p>
+
+    <div class="painel__info-grid">
+      <div>
+        <span class="painel__campo-label">Criticidade</span>
+        <p class="painel__campo-valor" style="color:${criticidadeInfo?.cor || "inherit"};">${criticidadeInfo?.label || "Não informado"}</p>
+      </div>
+      <div>
+        <span class="painel__campo-label">Categoria</span>
+        <p class="painel__campo-valor">${solucao.categoria || "Não informado"}</p>
+      </div>
+      <div>
+        <span class="painel__campo-label">Autor</span>
+        <p class="painel__campo-valor">${solucao.autor || "Não informado"}</p>
+      </div>
+      <div>
+        <span class="painel__campo-label">Criado em</span>
+        <p class="painel__campo-valor">${formatarData(solucao.criado_em)}</p>
+      </div>
+    </div>
+
+    ${corpoTipo}
+
+    ${tags.length > 0 ? `
+      <div class="painel__secao">
+        <span class="painel__secao-titulo">Palavras-chave</span>
+        <div class="painel-tags">${tags.map((t) => `<span class="solucao-card__tag">${t}</span>`).join("")}</div>
+      </div>
+    ` : ""}
+
+    ${renderizarAnexosPainel(solucao.anexos)}
+  `;
+
+  painelOverlay.hidden = false;
+  document.body.style.overflow = "hidden";
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("id", solucao.id);
+  window.history.replaceState({}, "", url);
+}
+
+function fecharPainel() {
+  painelOverlay.hidden = true;
+  painelEl.classList.remove("painel--expandido");
+  document.body.style.overflow = "";
+  solucaoAberta = null;
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete("id");
+  window.history.replaceState({}, "", url);
+}
+
+painelFecharBtn.addEventListener("click", fecharPainel);
+
+painelOverlay.addEventListener("click", (event) => {
+  if (event.target === painelOverlay) fecharPainel();
+});
+
+painelExpandirBtn.addEventListener("click", () => {
+  painelEl.classList.toggle("painel--expandido");
+});
+
+painelCopiarBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    painelCopiarBtn.textContent = "Link copiado!";
+    setTimeout(() => { painelCopiarBtn.textContent = "Copiar link"; }, 1500);
+  } catch (erro) {
+    console.error("Não foi possível copiar o link:", erro);
+  }
+});
+
+painelCorpoEl.addEventListener("click", (event) => {
+  if (event.target.classList.contains("painel-passo__imagem")) {
+    window.open(event.target.src, "_blank", "noopener");
+  }
+});
 
 function preencherFiltroDinamico(selectEl, valores) {
   const valorAtual = selectEl.value;
@@ -258,6 +454,12 @@ async function carregarContagemESolucoes() {
   preencherFiltroDinamico(filtroAutor, solucoesTodas.map((s) => s.autor));
 
   renderizarLista();
+
+  const idNaUrl = new URLSearchParams(window.location.search).get("id");
+  if (idNaUrl) {
+    const solucao = solucoesTodas.find((s) => s.id === idNaUrl);
+    if (solucao) abrirPainel(solucao);
+  }
 }
 
 carregarContagemESolucoes();
