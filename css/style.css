@@ -4,7 +4,7 @@
   --cor-superficie: #ffffff;
   --cor-borda: #d1d1d1;
   --cor-texto: #1a1a1a;
-  --cor-texto-suave: #6b6d76;
+  --cor-texto-suave: #64748b;
   --cor-primaria: #e84e0e;
 }
 
@@ -20,6 +20,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif;
 }
 
 body {
