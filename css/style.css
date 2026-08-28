@@ -717,20 +717,14 @@ body {
   background-color: var(--cor-fundo);
 }
 
-.publicacao-autosave {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.publicacao-erro {
   font-size: 12px;
-  color: var(--cor-texto-fraco);
-  margin-bottom: 14px;
+  color: var(--cor-erro);
+  margin-bottom: 10px;
 }
 
-.publicacao-autosave svg {
-  width: 14px;
-  height: 14px;
-  color: #2fa360;
-  flex-shrink: 0;
+.publicacao-erro:empty {
+  display: none;
 }
 
 .publicacao-btn {
@@ -749,6 +743,11 @@ body {
   border: none;
   background-color: var(--cor-primaria);
   color: #ffffff;
+}
+
+.publicacao-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .publicacao-btn--principal:hover {

@@ -1,3 +1,5 @@
+import { supabase } from "./supabase-config.js";
+
 const tipoCards = document.querySelectorAll(".tipo-card");
 const registroVazio = document.getElementById("registro-vazio");
 const registroCampos = document.getElementById("registro-campos");
@@ -184,7 +186,11 @@ function ativarAnexos() {
   const input = document.getElementById("anexos-input");
   const lista = document.getElementById("anexos-lista");
 
+  dropzone._arquivos = [];
+
   function adicionarArquivo(arquivo) {
+    dropzone._arquivos.push(arquivo);
+
     const item = document.createElement("div");
     item.className = "anexo-item";
     item.innerHTML = `
@@ -199,7 +205,11 @@ function ativarAnexos() {
     `;
 
     const progresso = item.querySelector(".anexo-item__progresso");
-    item.querySelector(".anexo-item__remover").addEventListener("click", () => item.remove());
+    item.querySelector(".anexo-item__remover").addEventListener("click", () => {
+      const indice = dropzone._arquivos.indexOf(arquivo);
+      if (indice > -1) dropzone._arquivos.splice(indice, 1);
+      item.remove();
+    });
 
     lista.appendChild(item);
     requestAnimationFrame(() => {
@@ -339,13 +349,26 @@ criticidadeBtns.forEach((btn) => {
   });
 });
 
-function ativarAdicionarOpcao({ select, addBtn, form, input, confirmar, cancelar }) {
+async function carregarOpcoes(tabela, selectEl) {
+  const { data } = await supabase.from(tabela).select("*").order("nome");
+  selectEl.innerHTML = "";
+  (data || []).forEach((registro) => {
+    const opcao = document.createElement("option");
+    opcao.value = registro.nome;
+    opcao.textContent = registro.nome;
+    selectEl.appendChild(opcao);
+  });
+}
+
+function ativarSelecaoComCadastro({ tabela, select, addBtn, form, input, confirmar, cancelar }) {
   const selectEl = document.getElementById(select);
   const addBtnEl = document.getElementById(addBtn);
   const formEl = document.getElementById(form);
   const inputEl = document.getElementById(input);
   const confirmarEl = document.getElementById(confirmar);
   const cancelarEl = document.getElementById(cancelar);
+
+  carregarOpcoes(tabela, selectEl);
 
   function fechar() {
     formEl.hidden = true;
@@ -359,16 +382,23 @@ function ativarAdicionarOpcao({ select, addBtn, form, input, confirmar, cancelar
 
   cancelarEl.addEventListener("click", fechar);
 
-  confirmarEl.addEventListener("click", () => {
+  confirmarEl.addEventListener("click", async () => {
     const valor = inputEl.value.trim();
     if (!valor) return;
 
-    const opcao = document.createElement("option");
-    opcao.value = valor;
-    opcao.textContent = valor;
-    selectEl.appendChild(opcao);
-    selectEl.value = valor;
+    confirmarEl.disabled = true;
+    const { error } = await supabase
+      .from(tabela)
+      .upsert({ nome: valor }, { onConflict: "nome", ignoreDuplicates: true });
+    confirmarEl.disabled = false;
 
+    if (error) {
+      console.error(`Erro ao cadastrar em ${tabela}:`, error);
+      return;
+    }
+
+    await carregarOpcoes(tabela, selectEl);
+    selectEl.value = valor;
     fechar();
   });
 
@@ -380,7 +410,8 @@ function ativarAdicionarOpcao({ select, addBtn, form, input, confirmar, cancelar
   });
 }
 
-ativarAdicionarOpcao({
+ativarSelecaoComCadastro({
+  tabela: "modulos",
   select: "modulo-select",
   addBtn: "modulo-add-btn",
   form: "modulo-novo-form",
@@ -389,11 +420,118 @@ ativarAdicionarOpcao({
   cancelar: "modulo-novo-cancelar"
 });
 
-ativarAdicionarOpcao({
+ativarSelecaoComCadastro({
+  tabela: "categorias",
   select: "categoria-select",
   addBtn: "categoria-add-btn",
   form: "categoria-novo-form",
   input: "categoria-novo-input",
   confirmar: "categoria-novo-confirmar",
   cancelar: "categoria-novo-cancelar"
+});
+
+async function enviarArquivo(solucaoId, nomeArquivo, arquivo) {
+  const caminho = `${solucaoId}/${nomeArquivo}`;
+  const { error } = await supabase.storage.from("solucoes").upload(caminho, arquivo);
+  if (error) throw error;
+  const { data } = supabase.storage.from("solucoes").getPublicUrl(caminho);
+  return data.publicUrl;
+}
+
+async function coletarPassos(solucaoId) {
+  const cards = Array.from(document.querySelectorAll(".passo-card"));
+
+  return Promise.all(cards.map(async (card, indice) => {
+    const texto = card.querySelector(".passo-card__texto").value.trim();
+    const arquivos = card._imagens || [];
+
+    const imagens = await Promise.all(arquivos.map(async (arquivo, imgIndice) => {
+      const nomeArquivo = `passo-${indice + 1}-${imgIndice + 1}-${Date.now()}-${arquivo.name || "colada.png"}`;
+      const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
+      return { nome: arquivo.name || nomeArquivo, url };
+    }));
+
+    return { ordem: indice + 1, texto, imagens };
+  }));
+}
+
+async function coletarAnexos(solucaoId) {
+  const dropzone = document.getElementById("anexos-dropzone");
+  const arquivos = dropzone?._arquivos || [];
+
+  return Promise.all(arquivos.map(async (arquivo, indice) => {
+    const nomeArquivo = `${Date.now()}-${indice + 1}-${arquivo.name}`;
+    const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
+    return { nome: arquivo.name, url };
+  }));
+}
+
+function coletarTags(containerId) {
+  return Array.from(document.querySelectorAll(`#${containerId} .tag-chip`))
+    .map((chip) => chip.firstChild.textContent.trim());
+}
+
+const salvarBtn = document.getElementById("salvar-btn");
+const publicacaoErro = document.getElementById("publicacao-erro");
+
+salvarBtn.addEventListener("click", async () => {
+  publicacaoErro.textContent = "";
+
+  const tipoAtivo = document.querySelector(".tipo-card--ativo");
+  if (!tipoAtivo) {
+    publicacaoErro.textContent = "Escolha um tipo de registro antes de salvar.";
+    return;
+  }
+
+  if (tipoAtivo.dataset.tipo !== "erro") {
+    publicacaoErro.textContent = "Os campos desse tipo de registro ainda não estão prontos para salvar.";
+    return;
+  }
+
+  const titulo = document.querySelector(".campo-titulo-input")?.value.trim();
+  if (!titulo) {
+    publicacaoErro.textContent = "Preencha o título da solução.";
+    return;
+  }
+
+  salvarBtn.disabled = true;
+  salvarBtn.textContent = "Salvando...";
+
+  try {
+    const solucaoId = crypto.randomUUID();
+
+    const [passos, anexos] = await Promise.all([
+      coletarPassos(solucaoId),
+      coletarAnexos(solucaoId)
+    ]);
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { error } = await supabase.from("solucoes").insert({
+      id: solucaoId,
+      tipo: "erro",
+      titulo,
+      erro: document.querySelector(".campo-textarea")?.value.trim() || "",
+      codigo_erro: document.querySelector(".campo-input--codigo")?.value.trim() || "",
+      sintomas: coletarTags("tags-campo"),
+      tabelas_campos: coletarTags("tabelas-campo"),
+      passos,
+      anexos,
+      autor: document.getElementById("autor-input").value.trim(),
+      categoria: document.getElementById("categoria-select").value || null,
+      modulo: document.getElementById("modulo-select").value || null,
+      criticidade: document.querySelector(".criticidade-btn--ativo")?.dataset.criticidade || null,
+      criado_por: user.id
+    });
+
+    if (error) throw error;
+
+    window.location.href = "index.html";
+  } catch (erro) {
+    console.error("Erro ao salvar registro:", erro);
+    publicacaoErro.textContent = "Não foi possível salvar. Tente novamente.";
+  } finally {
+    salvarBtn.disabled = false;
+    salvarBtn.textContent = "Salvar";
+  }
 });
