@@ -1277,6 +1277,8 @@ body {
 
 .codigo-editor {
   display: flex;
+  max-height: 320px;
+  overflow-y: auto;
   background-color: #fbfbfc;
 }
 

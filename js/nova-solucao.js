@@ -366,6 +366,7 @@ function ativarBlocoCodigo() {
 
   atualizarNumeros();
   atualizarDestaque();
+  ajustarAlturaCodigo();
 
   copiarBtn.addEventListener("click", async () => {
     try {
