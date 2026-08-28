@@ -178,6 +178,63 @@ function ativarPassoAPasso() {
   adicionarPasso();
 }
 
+function ativarAnexos() {
+  const dropzone = document.getElementById("anexos-dropzone");
+  const selecionarBtn = document.getElementById("anexos-selecionar");
+  const input = document.getElementById("anexos-input");
+  const lista = document.getElementById("anexos-lista");
+
+  function adicionarArquivo(arquivo) {
+    const item = document.createElement("div");
+    item.className = "anexo-item";
+    item.innerHTML = `
+      <span class="anexo-item__icone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg>
+      </span>
+      <div class="anexo-item__info">
+        <span class="anexo-item__nome">${arquivo.name}</span>
+        <div class="anexo-item__barra"><div class="anexo-item__progresso"></div></div>
+      </div>
+      <button type="button" class="anexo-item__remover" aria-label="Remover anexo">×</button>
+    `;
+
+    const progresso = item.querySelector(".anexo-item__progresso");
+    item.querySelector(".anexo-item__remover").addEventListener("click", () => item.remove());
+
+    lista.appendChild(item);
+    requestAnimationFrame(() => {
+      progresso.style.width = "100%";
+    });
+  }
+
+  function adicionarArquivos(arquivos) {
+    Array.from(arquivos).forEach(adicionarArquivo);
+  }
+
+  selecionarBtn.addEventListener("click", () => input.click());
+
+  dropzone.addEventListener("click", (event) => {
+    if (event.target === selecionarBtn) return;
+    input.click();
+  });
+
+  input.addEventListener("change", () => {
+    adicionarArquivos(input.files);
+    input.value = "";
+  });
+
+  ["dragover", "dragleave", "drop"].forEach((tipo) => {
+    dropzone.addEventListener(tipo, (event) => event.preventDefault());
+  });
+
+  dropzone.addEventListener("dragover", () => dropzone.classList.add("anexos-dropzone--sobre"));
+  dropzone.addEventListener("dragleave", () => dropzone.classList.remove("anexos-dropzone--sobre"));
+  dropzone.addEventListener("drop", (event) => {
+    dropzone.classList.remove("anexos-dropzone--sobre");
+    adicionarArquivos(event.dataTransfer.files);
+  });
+}
+
 function criarCamposErro() {
   registroCampos.innerHTML = `
     <div class="campo-titulo">
@@ -218,11 +275,32 @@ function criarCamposErro() {
         <input class="tags-input tags-input--mono" type="text" id="tabelas-input" placeholder="adicionar...">
       </div>
     </div>
+
+    <div class="campo-linha-dupla">
+      <div class="campo-grupo">
+        <label class="campo-label">Anexos</label>
+        <div class="anexos-dropzone" id="anexos-dropzone">
+          <span>Arraste arquivos aqui ou <button type="button" class="anexos-link" id="anexos-selecionar">selecione do computador</button></span>
+          <input class="anexos-input" type="file" id="anexos-input" multiple hidden>
+        </div>
+        <div class="anexos-lista" id="anexos-lista"></div>
+      </div>
+
+      <div class="campo-grupo">
+        <label class="campo-label">Soluções relacionadas</label>
+        <div class="vincular-campo">
+          <svg class="vincular-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input class="vincular-input" type="text" placeholder="Buscar registro para vincular...">
+        </div>
+        <div class="relacionadas-lista" id="relacionadas-lista"></div>
+      </div>
+    </div>
   `;
 
   ativarCampoTags("tags-campo", "tags-input");
   ativarCampoTags("tabelas-campo", "tabelas-input");
   ativarPassoAPasso();
+  ativarAnexos();
 }
 
 function criarCamposEmConstrucao(titulo) {
