@@ -129,6 +129,8 @@ const painelEl = document.getElementById("painel");
 const painelTipoEl = document.getElementById("painel-tipo");
 const painelModuloEl = document.getElementById("painel-modulo");
 const painelCorpoEl = document.getElementById("painel-corpo");
+const painelEditarBtn = document.getElementById("painel-editar");
+const painelExcluirBtn = document.getElementById("painel-excluir");
 const painelExpandirBtn = document.getElementById("painel-expandir");
 const painelFecharBtn = document.getElementById("painel-fechar");
 const painelCopiarBtn = document.getElementById("painel-copiar-link");
@@ -297,6 +299,31 @@ function fecharPainel() {
 }
 
 painelFecharBtn.addEventListener("click", fecharPainel);
+
+painelEditarBtn.addEventListener("click", () => {
+  if (!solucaoAberta) return;
+  window.location.href = `nova-solucao.html?id=${solucaoAberta.id}`;
+});
+
+painelExcluirBtn.addEventListener("click", async () => {
+  if (!solucaoAberta) return;
+  if (!window.confirm("Excluir esta solução? Essa ação não pode ser desfeita.")) return;
+
+  painelExcluirBtn.disabled = true;
+  const { error } = await supabase.from("solucoes").delete().eq("id", solucaoAberta.id);
+  painelExcluirBtn.disabled = false;
+
+  if (error) {
+    console.error("Erro ao excluir solução:", error);
+    return;
+  }
+
+  const idExcluido = solucaoAberta.id;
+  solucoesTodas = solucoesTodas.filter((s) => s.id !== idExcluido);
+  fecharPainel();
+  renderizarLista();
+  contagemEl.textContent = `${solucoesTodas.length.toLocaleString("pt-BR")} soluções cadastradas`;
+});
 
 painelOverlay.addEventListener("click", (event) => {
   if (event.target === painelOverlay) fecharPainel();

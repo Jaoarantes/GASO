@@ -4,6 +4,8 @@ const tipoCards = document.querySelectorAll(".tipo-card");
 const registroVazio = document.getElementById("registro-vazio");
 const registroCampos = document.getElementById("registro-campos");
 
+const idEdicao = new URLSearchParams(window.location.search).get("id");
+
 function ativarCampoTags(containerId, inputId) {
   const container = document.getElementById(containerId);
   const input = document.getElementById(inputId);
@@ -34,6 +36,8 @@ function ativarCampoTags(containerId, inputId) {
       input.value = "";
     }
   });
+
+  return { adicionarTag };
 }
 
 function ajustarAltura(textarea) {
@@ -51,6 +55,10 @@ function renumerarPassos() {
 
 const MAX_IMAGENS_POR_PASSO = 3;
 
+function urlDaImagem(item) {
+  return item instanceof File ? URL.createObjectURL(item) : item.url;
+}
+
 function atualizarImagensDoPasso(card) {
   const imagensArea = card.querySelector(".passo-card__imagens");
   const anexarBtn = card.querySelector(".passo-card__anexar");
@@ -64,7 +72,7 @@ function atualizarImagensDoPasso(card) {
     item.className = "passo-card__imagem-item";
 
     const img = document.createElement("img");
-    img.src = URL.createObjectURL(arquivo);
+    img.src = urlDaImagem(arquivo);
     img.alt = `Imagem ${indice + 1} do passo`;
 
     const removerBtn = document.createElement("button");
@@ -95,11 +103,11 @@ function adicionarImagensAoPasso(card, novosArquivos) {
   atualizarImagensDoPasso(card);
 }
 
-function criarPassoCard() {
+function criarPassoCard(passoInicial) {
   const card = document.createElement("div");
   card.className = "passo-card";
   card.draggable = true;
-  card._imagens = [];
+  card._imagens = passoInicial?.imagens ? passoInicial.imagens.slice() : [];
   card.innerHTML = `
     <div class="passo-card__topo">
       <span class="passo-card__handle" title="Arraste para reordenar">
@@ -119,6 +127,9 @@ function criarPassoCard() {
   `;
 
   const textarea = card.querySelector(".passo-card__texto");
+  if (passoInicial?.texto) {
+    textarea.value = passoInicial.texto;
+  }
   textarea.addEventListener("input", () => ajustarAltura(textarea));
 
   textarea.addEventListener("paste", (event) => {
@@ -139,6 +150,9 @@ function criarPassoCard() {
   });
 
   atualizarImagensDoPasso(card);
+  if (passoInicial?.texto) {
+    ajustarAltura(textarea);
+  }
 
   card.querySelector(".passo-card__remover").addEventListener("click", () => {
     card.remove();
@@ -167,20 +181,25 @@ function criarPassoCard() {
   return card;
 }
 
-function ativarPassoAPasso() {
+function ativarPassoAPasso(passosIniciais) {
   const lista = document.getElementById("passos-lista");
   const addBtn = document.getElementById("add-passo");
 
-  function adicionarPasso() {
-    lista.appendChild(criarPassoCard());
+  function adicionarPasso(passoInicial) {
+    lista.appendChild(criarPassoCard(passoInicial));
     renumerarPassos();
   }
 
-  addBtn.addEventListener("click", adicionarPasso);
-  adicionarPasso();
+  addBtn.addEventListener("click", () => adicionarPasso());
+
+  if (passosIniciais && passosIniciais.length > 0) {
+    passosIniciais.forEach((passo) => adicionarPasso(passo));
+  } else {
+    adicionarPasso();
+  }
 }
 
-function ativarAnexos() {
+function ativarAnexos(anexosIniciais) {
   const dropzone = document.getElementById("anexos-dropzone");
   const selecionarBtn = document.getElementById("anexos-selecionar");
   const input = document.getElementById("anexos-input");
@@ -191,6 +210,7 @@ function ativarAnexos() {
   function adicionarArquivo(arquivo) {
     dropzone._arquivos.push(arquivo);
 
+    const nome = arquivo instanceof File ? arquivo.name : arquivo.nome;
     const item = document.createElement("div");
     item.className = "anexo-item";
     item.innerHTML = `
@@ -198,7 +218,7 @@ function ativarAnexos() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg>
       </span>
       <div class="anexo-item__info">
-        <span class="anexo-item__nome">${arquivo.name}</span>
+        <span class="anexo-item__nome">${nome}</span>
         <div class="anexo-item__barra"><div class="anexo-item__progresso"></div></div>
       </div>
       <button type="button" class="anexo-item__remover" aria-label="Remover anexo">×</button>
@@ -243,9 +263,13 @@ function ativarAnexos() {
     dropzone.classList.remove("anexos-dropzone--sobre");
     adicionarArquivos(event.dataTransfer.files);
   });
+
+  if (anexosIniciais && anexosIniciais.length > 0) {
+    adicionarArquivos(anexosIniciais);
+  }
 }
 
-function criarCamposErro() {
+function criarCamposErro(solucao) {
   codigoEditorAtivo = null;
 
   registroCampos.innerHTML = `
@@ -309,10 +333,18 @@ function criarCamposErro() {
     </div>
   `;
 
-  ativarCampoTags("tags-campo", "tags-input");
-  ativarCampoTags("tabelas-campo", "tabelas-input");
-  ativarPassoAPasso();
-  ativarAnexos();
+  const tagsApi = ativarCampoTags("tags-campo", "tags-input");
+  const tabelasApi = ativarCampoTags("tabelas-campo", "tabelas-input");
+  ativarPassoAPasso(solucao?.passos);
+  ativarAnexos(solucao?.anexos);
+
+  if (solucao) {
+    registroCampos.querySelector(".campo-titulo-input").value = solucao.titulo || "";
+    registroCampos.querySelector(".campo-textarea").value = solucao.erro || "";
+    registroCampos.querySelector(".campo-input--codigo").value = solucao.codigo_erro || "";
+    (solucao.sintomas || []).forEach((tag) => tagsApi.adicionarTag(tag));
+    (solucao.tabelas_campos || []).forEach((tag) => tabelasApi.adicionarTag(tag));
+  }
 }
 
 function criarParametroLinha() {
@@ -329,12 +361,22 @@ function criarParametroLinha() {
   return linha;
 }
 
-function ativarParametros() {
+function ativarParametros(parametrosIniciais) {
   const lista = document.getElementById("parametros-lista");
   const addBtn = document.getElementById("add-parametro");
 
   addBtn.addEventListener("click", () => lista.appendChild(criarParametroLinha()));
-  lista.appendChild(criarParametroLinha());
+
+  if (parametrosIniciais && parametrosIniciais.length > 0) {
+    parametrosIniciais.forEach((parametro) => {
+      const linha = criarParametroLinha();
+      linha.querySelector(".parametro-nome").value = parametro.nome || "";
+      linha.querySelector(".parametro-desc").value = parametro.descricao || "";
+      lista.appendChild(linha);
+    });
+  } else {
+    lista.appendChild(criarParametroLinha());
+  }
 }
 
 let codigoEditorAtivo = null;
@@ -370,7 +412,7 @@ function ativarRisco() {
   });
 }
 
-function criarCamposScript() {
+function criarCamposScript(solucao) {
   registroCampos.innerHTML = `
     <div class="campo-titulo">
       <input class="campo-titulo-input" type="text" placeholder="Divergência entre estoque físico e contábil por filial">
@@ -448,11 +490,24 @@ function criarCamposScript() {
     </div>
   `;
 
-  ativarCampoTags("tags-campo", "tags-input");
+  const tagsApi = ativarCampoTags("tags-campo", "tags-input");
   ativarBlocoCodigo();
-  ativarParametros();
+  ativarParametros(solucao?.parametros);
   ativarRisco();
-  ativarAnexos();
+  ativarAnexos(solucao?.anexos);
+
+  if (solucao) {
+    registroCampos.querySelector(".campo-titulo-input").value = solucao.titulo || "";
+    registroCampos.querySelector(".campo-textarea").value = solucao.erro || "";
+    (solucao.sintomas || []).forEach((tag) => tagsApi.adicionarTag(tag));
+    if (codigoEditorAtivo) codigoEditorAtivo.setValue(solucao.codigo || "");
+    if (solucao.risco) {
+      document.querySelectorAll(".risco-btn").forEach((b) => b.classList.remove("risco-btn--ativo"));
+      document.querySelector(`.risco-btn[data-risco="${solucao.risco}"]`)?.classList.add("risco-btn--ativo");
+    }
+    document.getElementById("reversivel-check").checked = !!solucao.reversivel;
+    document.getElementById("resultado-esperado").value = solucao.resultado_esperado || "";
+  }
 }
 
 tipoCards.forEach((card) => {
@@ -500,7 +555,7 @@ function ativarSelecaoComCadastro({ tabela, select, addBtn, form, input, confirm
   const confirmarEl = document.getElementById(confirmar);
   const cancelarEl = document.getElementById(cancelar);
 
-  carregarOpcoes(tabela, selectEl);
+  const pronto = carregarOpcoes(tabela, selectEl);
 
   function fechar() {
     formEl.hidden = true;
@@ -540,9 +595,11 @@ function ativarSelecaoComCadastro({ tabela, select, addBtn, form, input, confirm
       confirmarEl.click();
     }
   });
+
+  return { selectEl, pronto };
 }
 
-ativarSelecaoComCadastro({
+const moduloApi = ativarSelecaoComCadastro({
   tabela: "modulos",
   select: "modulo-select",
   addBtn: "modulo-add-btn",
@@ -552,7 +609,7 @@ ativarSelecaoComCadastro({
   cancelar: "modulo-novo-cancelar"
 });
 
-ativarSelecaoComCadastro({
+const categoriaApi = ativarSelecaoComCadastro({
   tabela: "categorias",
   select: "categoria-select",
   addBtn: "categoria-add-btn",
@@ -578,6 +635,7 @@ async function coletarPassos(solucaoId) {
     const arquivos = card._imagens || [];
 
     const imagens = await Promise.all(arquivos.map(async (arquivo, imgIndice) => {
+      if (!(arquivo instanceof File)) return arquivo;
       const nomeArquivo = `passo-${indice + 1}-${imgIndice + 1}-${Date.now()}-${arquivo.name || "colada.png"}`;
       const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
       return { nome: arquivo.name || nomeArquivo, url };
@@ -592,6 +650,7 @@ async function coletarAnexos(solucaoId) {
   const arquivos = dropzone?._arquivos || [];
 
   return Promise.all(arquivos.map(async (arquivo, indice) => {
+    if (!(arquivo instanceof File)) return arquivo;
     const nomeArquivo = `${Date.now()}-${indice + 1}-${arquivo.name}`;
     const url = await enviarArquivo(solucaoId, nomeArquivo, arquivo);
     return { nome: arquivo.name, url };
@@ -637,20 +696,17 @@ salvarBtn.addEventListener("click", async () => {
   }
 
   salvarBtn.disabled = true;
-  salvarBtn.textContent = "Salvando...";
+  salvarBtn.textContent = idEdicao ? "Salvando edição..." : "Salvando...";
 
   try {
-    const solucaoId = crypto.randomUUID();
+    const solucaoId = idEdicao || crypto.randomUUID();
 
     const [passos, anexos] = await Promise.all([
       coletarPassos(solucaoId),
       coletarAnexos(solucaoId)
     ]);
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const { error } = await supabase.from("solucoes").insert({
-      id: solucaoId,
+    const dados = {
       tipo,
       titulo,
       erro: document.querySelector(".campo-textarea")?.value.trim() || "",
@@ -667,18 +723,72 @@ salvarBtn.addEventListener("click", async () => {
       autor: document.getElementById("autor-input").value.trim(),
       categoria: document.getElementById("categoria-select").value || null,
       modulo: document.getElementById("modulo-select").value || null,
-      criticidade: document.querySelector(".criticidade-btn--ativo")?.dataset.criticidade || null,
-      criado_por: user.id
-    });
+      criticidade: document.querySelector(".criticidade-btn--ativo")?.dataset.criticidade || null
+    };
+
+    let error;
+
+    if (idEdicao) {
+      ({ error } = await supabase.from("solucoes").update(dados).eq("id", idEdicao));
+    } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      ({ error } = await supabase.from("solucoes").insert({ id: solucaoId, ...dados, criado_por: user.id }));
+    }
 
     if (error) throw error;
 
-    window.location.href = "index.html";
+    window.location.href = idEdicao ? `index.html?id=${idEdicao}` : "index.html";
   } catch (erro) {
     console.error("Erro ao salvar registro:", erro);
     publicacaoErro.textContent = "Não foi possível salvar. Tente novamente.";
   } finally {
     salvarBtn.disabled = false;
-    salvarBtn.textContent = "Salvar";
+    salvarBtn.textContent = idEdicao ? "Confirmar edição" : "Salvar";
   }
 });
+
+async function iniciarModoEdicao() {
+  if (!idEdicao) return;
+
+  const { data, error } = await supabase.from("solucoes").select("*").eq("id", idEdicao).single();
+  if (error || !data) {
+    console.error("Não foi possível carregar a solução para edição:", error);
+    return;
+  }
+
+  document.title = "Editar | GASO";
+  const cabecalhoEl = document.getElementById("pagina-cabecalho");
+  if (cabecalhoEl) cabecalhoEl.textContent = "Editar";
+  const linkTextoEl = document.getElementById("nova-solucao-link-texto");
+  if (linkTextoEl) linkTextoEl.textContent = "Editar";
+  salvarBtn.textContent = "Confirmar edição";
+
+  const cardTipo = document.querySelector(`.tipo-card[data-tipo="${data.tipo}"]`);
+  if (cardTipo) {
+    tipoCards.forEach((c) => c.classList.remove("tipo-card--ativo"));
+    cardTipo.classList.add("tipo-card--ativo");
+    registroVazio.hidden = true;
+    registroCampos.hidden = false;
+
+    if (data.tipo === "erro") {
+      criarCamposErro(data);
+    } else if (data.tipo === "script") {
+      criarCamposScript(data);
+    }
+  }
+
+  if (data.criticidade) {
+    criticidadeBtns.forEach((b) => b.classList.remove("criticidade-btn--ativo"));
+    document.querySelector(`.criticidade-btn[data-criticidade="${data.criticidade}"]`)?.classList.add("criticidade-btn--ativo");
+  }
+
+  document.getElementById("autor-input").value = data.autor || "";
+
+  await moduloApi.pronto;
+  if (data.modulo) moduloApi.selectEl.value = data.modulo;
+
+  await categoriaApi.pronto;
+  if (data.categoria) categoriaApi.selectEl.value = data.categoria;
+}
+
+iniciarModoEdicao();
