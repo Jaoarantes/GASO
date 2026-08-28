@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | GASO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/img/favicon.ico">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="login">
+    <form class="login__card" id="login-form" novalidate>
+      <img class="login__logo" src="assets/img/logo-claro.svg" alt="Gasometro">
+
+      <h1 class="login__title">Entrar</h1>
+
+      <label class="login__label" for="login-usuario">Login</label>
+      <input class="login__input" type="text" id="login-usuario" name="login-usuario" autocomplete="username" required>
+
+      <label class="login__label" for="senha">Senha</label>
+      <div class="login__senha-wrapper">
+        <input class="login__input" type="password" id="senha" name="senha" autocomplete="current-password" required>
+        <button class="login__toggle-senha" type="button" id="toggle-senha" aria-label="Mostrar senha"></button>
+      </div>
+
+      <p class="login__error" id="login-error"></p>
+
+      <button class="login__btn" type="submit">Entrar</button>
+    </form>
+  </main>
+
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>
