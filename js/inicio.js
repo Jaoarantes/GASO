@@ -106,6 +106,24 @@ function criarCard(solucao) {
   return card;
 }
 
+const lightboxEl = document.getElementById("lightbox");
+const lightboxImagemEl = document.getElementById("lightbox-imagem");
+
+function abrirLightbox(src, alt) {
+  lightboxImagemEl.src = src;
+  lightboxImagemEl.alt = alt || "";
+  lightboxEl.hidden = false;
+}
+
+function fecharLightbox() {
+  lightboxEl.hidden = true;
+  lightboxImagemEl.src = "";
+}
+
+lightboxEl.addEventListener("click", (event) => {
+  if (event.target === lightboxEl) fecharLightbox();
+});
+
 const painelOverlay = document.getElementById("painel-overlay");
 const painelEl = document.getElementById("painel");
 const painelTipoEl = document.getElementById("painel-tipo");
@@ -300,7 +318,7 @@ painelCopiarBtn.addEventListener("click", async () => {
 
 painelCorpoEl.addEventListener("click", (event) => {
   if (event.target.classList.contains("painel-passo__imagem")) {
-    window.open(event.target.src, "_blank", "noopener");
+    abrirLightbox(event.target.src, event.target.alt);
   }
 });
 
