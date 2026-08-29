@@ -387,6 +387,10 @@ body {
   font-family: inherit;
   color: var(--cor-texto);
   cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filtros-aplicados {
