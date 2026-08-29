@@ -41,15 +41,6 @@ const RISCO_INFO = {
   alto: { label: "Alto", cor: "#dc2626" }
 };
 
-function formatarTempoRelativo(dataIso) {
-  if (!dataIso) return "";
-  const diffMs = Date.now() - new Date(dataIso).getTime();
-  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDias <= 0) return "hoje";
-  if (diffDias === 1) return "ontem";
-  return `há ${diffDias} dias`;
-}
-
 function iniciaisAutor(nome) {
   const partes = (nome || "").trim().split(/\s+/).filter(Boolean);
   if (partes.length === 0) return "?";
@@ -97,7 +88,7 @@ function criarCard(solucao) {
     <div class="solucao-card__rodape">
       <span class="solucao-card__avatar">${iniciaisAutor(solucao.autor)}</span>
       <span class="solucao-card__autor">${solucao.autor || "Autor não informado"}</span>
-      <span class="solucao-card__tempo">· ${formatarTempoRelativo(solucao.criado_em)}</span>
+      <span class="solucao-card__tempo">· Criada em ${formatarData(solucao.criado_em)}</span>
     </div>
   `;
 
