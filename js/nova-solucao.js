@@ -378,17 +378,27 @@ function ativarAnexos(anexosIniciais) {
   }
 }
 
-function criarCamposErro(solucao) {
+function criarCamposErro(solucao, tipo) {
   codigoEditorAtivo = null;
+
+  const tipoAtual = tipo || solucao?.tipo || "erro";
+  const ehProcedimento = tipoAtual === "procedimento";
+
+  const tituloPlaceholder = ehProcedimento
+    ? "Cancelamento de pedido já faturado"
+    : "Erro ORA-01722 ao faturar pedido com desconto";
+  const resolvePlaceholder = ehProcedimento
+    ? "Passo a passo para cancelar um pedido que já passou pelo faturamento, revertendo os lançamentos gerados."
+    : "Conversão inválida no campo de desconto quando o pedido tem parcelamento. Ajuste de máscara na rotina de faturamento.";
 
   registroCampos.innerHTML = `
     <div class="campo-titulo">
-      <input class="campo-titulo-input" type="text" placeholder="Erro ORA-01722 ao faturar pedido com desconto">
+      <input class="campo-titulo-input" type="text" placeholder="${tituloPlaceholder}">
     </div>
 
     <div class="campo-grupo">
       <label class="campo-label">O que este registro resolve</label>
-      <textarea class="campo-textarea" rows="3" placeholder="Conversão inválida no campo de desconto quando o pedido tem parcelamento. Ajuste de máscara na rotina de faturamento."></textarea>
+      <textarea class="campo-textarea" rows="3" placeholder="${resolvePlaceholder}"></textarea>
     </div>
 
     <div class="campo-grupo">
@@ -398,10 +408,12 @@ function criarCamposErro(solucao) {
       </div>
     </div>
 
+    ${ehProcedimento ? "" : `
     <div class="campo-grupo">
       <label class="campo-label">Código ou mensagem de erro</label>
       <input class="campo-input campo-input--codigo" type="text" placeholder="ORA-01722: invalid number">
     </div>
+    `}
 
     <div class="passo-a-passo">
       <div class="passo-a-passo__cabecalho">
@@ -452,7 +464,8 @@ function criarCamposErro(solucao) {
   if (solucao) {
     registroCampos.querySelector(".campo-titulo-input").value = solucao.titulo || "";
     registroCampos.querySelector(".campo-textarea").value = solucao.erro || "";
-    registroCampos.querySelector(".campo-input--codigo").value = solucao.codigo_erro || "";
+    const codigoErroInput = registroCampos.querySelector(".campo-input--codigo");
+    if (codigoErroInput) codigoErroInput.value = solucao.codigo_erro || "";
     (solucao.sintomas || []).forEach((tag) => tagsApi.adicionarTag(tag));
     (solucao.tabelas_campos || []).forEach((tag) => tabelasApi.adicionarTag(tag));
   }
@@ -636,7 +649,7 @@ tipoCards.forEach((card) => {
     caminhoSecaoEl.hidden = tipo === "script";
 
     if (tipo === "erro" || tipo === "procedimento") {
-      criarCamposErro();
+      criarCamposErro(undefined, tipo);
     } else if (tipo === "script") {
       criarCamposScript();
     }
@@ -884,7 +897,7 @@ async function iniciarModoEdicao() {
     caminhoSecaoEl.hidden = data.tipo === "script";
 
     if (data.tipo === "erro" || data.tipo === "procedimento") {
-      criarCamposErro(data);
+      criarCamposErro(data, data.tipo);
     } else if (data.tipo === "script") {
       criarCamposScript(data);
     }

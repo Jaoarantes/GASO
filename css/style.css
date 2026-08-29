@@ -481,8 +481,8 @@ body {
 
 .tipo-cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
   margin-bottom: 16px;
 }
 
@@ -490,12 +490,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
   text-align: left;
   background-color: var(--cor-superficie);
   border: 1.5px solid var(--cor-borda);
   border-radius: var(--raio-sm);
-  padding: 18px;
+  padding: 14px;
   cursor: pointer;
   transition: border-color 0.2s var(--easing), box-shadow 0.2s var(--easing);
 }
@@ -521,18 +521,24 @@ body {
   box-shadow: none;
 }
 
+.tipo-card[data-tipo="procedimento"].tipo-card--ativo {
+  border-color: #2fa360;
+  background-color: #e5f6ea;
+  box-shadow: none;
+}
+
 .tipo-card__icone {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
 }
 
 .tipo-card__icone svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .tipo-card__icone--erro {
@@ -551,13 +557,13 @@ body {
 }
 
 .tipo-card__titulo {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--cor-texto);
 }
 
 .tipo-card__descricao {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--cor-texto-suave);
   line-height: 1.4;
 }
