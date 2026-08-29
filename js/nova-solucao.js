@@ -635,7 +635,7 @@ tipoCards.forEach((card) => {
     registroCampos.hidden = false;
     caminhoSecaoEl.hidden = tipo === "script";
 
-    if (tipo === "erro") {
+    if (tipo === "erro" || tipo === "procedimento") {
       criarCamposErro();
     } else if (tipo === "script") {
       criarCamposScript();
@@ -790,7 +790,7 @@ salvarBtn.addEventListener("click", async () => {
   }
 
   const tipo = tipoAtivo.dataset.tipo;
-  if (tipo !== "erro" && tipo !== "script") {
+  if (tipo !== "erro" && tipo !== "script" && tipo !== "procedimento") {
     publicacaoErro.textContent = "Os campos desse tipo de registro ainda não estão prontos para salvar.";
     return;
   }
@@ -828,7 +828,7 @@ salvarBtn.addEventListener("click", async () => {
       resultado_esperado: document.getElementById("resultado-esperado")?.value.trim() || "",
       autor: document.getElementById("autor-input").value.trim(),
       categoria: document.getElementById("categoria-select").value || null,
-      modulo: tipo === "erro"
+      modulo: tipo === "erro" || tipo === "procedimento"
         ? montarCaminho(
             document.getElementById("caminho-pagina-input")?.value.trim(),
             document.getElementById("caminho-texto-input")?.value.trim()
@@ -883,14 +883,14 @@ async function iniciarModoEdicao() {
     registroCampos.hidden = false;
     caminhoSecaoEl.hidden = data.tipo === "script";
 
-    if (data.tipo === "erro") {
+    if (data.tipo === "erro" || data.tipo === "procedimento") {
       criarCamposErro(data);
     } else if (data.tipo === "script") {
       criarCamposScript(data);
     }
   }
 
-  if (data.tipo === "erro") {
+  if (data.tipo === "erro" || data.tipo === "procedimento") {
     const { pagina, caminho } = separarCaminho(data.modulo);
     document.getElementById("caminho-pagina-input").value = pagina;
     document.getElementById("caminho-texto-input").value = caminho;

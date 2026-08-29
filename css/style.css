@@ -545,6 +545,11 @@ body {
   color: #7c5cf0;
 }
 
+.tipo-card__icone--procedimento {
+  background-color: #e5f6ea;
+  color: #2fa360;
+}
+
 .tipo-card__titulo {
   font-size: 14px;
   font-weight: 600;
