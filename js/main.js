@@ -12,7 +12,7 @@ function aplicarTema(tema) {
     temaTexto.textContent = tema === "dark" ? "Tema claro" : "Tema escuro";
   }
   if (temaIcone) {
-    temaIcone.innerHTML = tema === "dark" ? ICONE_LUA : ICONE_SOL;
+    temaIcone.innerHTML = tema === "dark" ? ICONE_SOL : ICONE_LUA;
   }
   if (sidebarLogo) {
     sidebarLogo.src = tema === "dark" ? "assets/img/logo-escuro.svg" : "assets/img/logo-claro.svg";
