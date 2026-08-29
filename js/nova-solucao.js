@@ -259,9 +259,6 @@ function criarPassoCard(passoInicial) {
   });
 
   atualizarImagensDoPasso(card);
-  if (passoInicial?.texto) {
-    ajustarAltura(textarea);
-  }
 
   card.querySelector(".passo-card__remover").addEventListener("click", () => {
     card.remove();
@@ -295,7 +292,11 @@ function ativarPassoAPasso(passosIniciais) {
   const addBtn = document.getElementById("add-passo");
 
   function adicionarPasso(passoInicial) {
-    lista.appendChild(criarPassoCard(passoInicial));
+    const card = criarPassoCard(passoInicial);
+    lista.appendChild(card);
+    if (passoInicial?.texto) {
+      ajustarAltura(card.querySelector(".passo-card__texto"));
+    }
     renumerarPassos();
   }
 
