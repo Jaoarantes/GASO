@@ -22,16 +22,16 @@ let solucoesTodas = [];
 let ordenacao = "recentes";
 
 const TIPO_INFO = {
-  erro: { label: "Erro", cor: "#d9534f", fundo: "#fdecea" },
-  script: { label: "Script", cor: "#7c5cf0", fundo: "#eee9fb" },
-  procedimento: { label: "Procedimento", cor: "#2fa360", fundo: "#e5f6ea" }
+  erro: { label: "Erro", cor: "var(--tipo-erro-cor)", fundo: "var(--tipo-erro-fundo)" },
+  script: { label: "Script", cor: "var(--tipo-script-cor)", fundo: "var(--tipo-script-fundo)" },
+  procedimento: { label: "Procedimento", cor: "var(--tipo-procedimento-cor)", fundo: "var(--tipo-procedimento-fundo)" }
 };
 
 const CRITICIDADE_INFO = {
-  baixa: { label: "Baixa", cor: "#6b7280" },
-  media: { label: "Média", cor: "#ca8a04" },
-  alta: { label: "Alta", cor: "#ea580c" },
-  critica: { label: "Crítica", cor: "#dc2626" }
+  baixa: { label: "Baixa", cor: "var(--prioridade-baixa)" },
+  media: { label: "Média", cor: "var(--prioridade-media)" },
+  alta: { label: "Alta", cor: "var(--prioridade-alta)" },
+  critica: { label: "Crítica", cor: "var(--prioridade-critica)" }
 };
 
 const RISCO_INFO = {
