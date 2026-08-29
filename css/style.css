@@ -39,20 +39,20 @@
 }
 
 [data-theme="dark"] {
-  --cor-fundo: #0d0d0c;
-  --cor-superficie: #171716;
-  --cor-borda: #343431;
+  --cor-fundo: #1a1a18;
+  --cor-superficie: #262624;
+  --cor-borda: #46463f;
   --cor-texto: #ededeb;
   --cor-texto-suave: #aba8a2;
-  --cor-texto-fraco: #6e6e69;
+  --cor-texto-fraco: #8a8a83;
   --cor-erro: #f09a93;
   --cor-primaria-forte: #fa7238;
   --cor-primaria-suave: rgba(232, 78, 14, 0.18);
 
-  --cor-sidebar: #141413;
-  --cor-item-ativo: #232320;
-  --cor-bloco-meta: #1b1819;
-  --cor-divisor: #2a2a27;
+  --cor-sidebar: #212120;
+  --cor-item-ativo: #38382f;
+  --cor-bloco-meta: #2d2d2a;
+  --cor-divisor: #38382f;
   --cor-link: #ffb894;
   --cor-descricao-card: #8fa8c4;
   --cor-texto-ativo: #ededeb;
