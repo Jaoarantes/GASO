@@ -39,9 +39,9 @@
 }
 
 [data-theme="dark"] {
-  --cor-fundo: #1a1a18;
-  --cor-superficie: #262624;
-  --cor-borda: #46463f;
+  --cor-fundo: #242420;
+  --cor-superficie: #333330;
+  --cor-borda: #55554c;
   --cor-texto: #ededeb;
   --cor-texto-suave: #aba8a2;
   --cor-texto-fraco: #8a8a83;
@@ -49,10 +49,10 @@
   --cor-primaria-forte: #fa7238;
   --cor-primaria-suave: rgba(232, 78, 14, 0.18);
 
-  --cor-sidebar: #212120;
-  --cor-item-ativo: #38382f;
-  --cor-bloco-meta: #2d2d2a;
-  --cor-divisor: #38382f;
+  --cor-sidebar: #2b2b26;
+  --cor-item-ativo: #45453e;
+  --cor-bloco-meta: #3a3a35;
+  --cor-divisor: #45453e;
   --cor-link: #ffb894;
   --cor-descricao-card: #8fa8c4;
   --cor-texto-ativo: #ededeb;
@@ -332,7 +332,7 @@ body {
 
 .busca-contagem {
   font-size: 15px;
-  color: #000000;
+  color: var(--cor-texto);
   margin-bottom: 12px;
 }
 
