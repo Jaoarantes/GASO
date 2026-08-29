@@ -363,6 +363,11 @@ body {
 
 /* Filtros */
 
+.busca-divisor {
+  border-bottom: 1px solid var(--cor-borda);
+  margin: 4px 0 20px;
+}
+
 .filtros-barra {
   display: flex;
   flex-wrap: wrap;
