@@ -6,6 +6,17 @@ const registroCampos = document.getElementById("registro-campos");
 
 const idEdicao = new URLSearchParams(window.location.search).get("id");
 
+function montarCaminho(pagina, caminho) {
+  return [pagina, caminho].filter(Boolean).join(" | ") || null;
+}
+
+function separarCaminho(modulo) {
+  if (!modulo) return { pagina: "", caminho: "" };
+  const indice = modulo.indexOf(" | ");
+  if (indice === -1) return { pagina: "", caminho: modulo };
+  return { pagina: modulo.slice(0, indice), caminho: modulo.slice(indice + 3) };
+}
+
 function ativarCampoTags(containerId, inputId) {
   const container = document.getElementById(containerId);
   const input = document.getElementById(inputId);
@@ -510,6 +521,8 @@ function criarCamposScript(solucao) {
   }
 }
 
+const caminhoSecaoEl = document.getElementById("caminho-secao");
+
 tipoCards.forEach((card) => {
   card.addEventListener("click", () => {
     tipoCards.forEach((c) => c.classList.remove("tipo-card--ativo"));
@@ -518,6 +531,7 @@ tipoCards.forEach((card) => {
     const tipo = card.dataset.tipo;
     registroVazio.hidden = true;
     registroCampos.hidden = false;
+    caminhoSecaoEl.hidden = tipo === "script";
 
     if (tipo === "erro") {
       criarCamposErro();
@@ -712,7 +726,12 @@ salvarBtn.addEventListener("click", async () => {
       resultado_esperado: document.getElementById("resultado-esperado")?.value.trim() || "",
       autor: document.getElementById("autor-input").value.trim(),
       categoria: document.getElementById("categoria-select").value || null,
-      modulo: document.getElementById("caminho-input").value.trim() || null,
+      modulo: tipo === "erro"
+        ? montarCaminho(
+            document.getElementById("caminho-pagina-input")?.value.trim(),
+            document.getElementById("caminho-texto-input")?.value.trim()
+          )
+        : null,
       criticidade: document.querySelector(".criticidade-btn--ativo")?.dataset.criticidade || null
     };
 
@@ -759,6 +778,7 @@ async function iniciarModoEdicao() {
     cardTipo.classList.add("tipo-card--ativo");
     registroVazio.hidden = true;
     registroCampos.hidden = false;
+    caminhoSecaoEl.hidden = data.tipo === "script";
 
     if (data.tipo === "erro") {
       criarCamposErro(data);
@@ -767,13 +787,18 @@ async function iniciarModoEdicao() {
     }
   }
 
+  if (data.tipo === "erro") {
+    const { pagina, caminho } = separarCaminho(data.modulo);
+    document.getElementById("caminho-pagina-input").value = pagina;
+    document.getElementById("caminho-texto-input").value = caminho;
+  }
+
   if (data.criticidade) {
     criticidadeBtns.forEach((b) => b.classList.remove("criticidade-btn--ativo"));
     document.querySelector(`.criticidade-btn[data-criticidade="${data.criticidade}"]`)?.classList.add("criticidade-btn--ativo");
   }
 
   document.getElementById("autor-input").value = data.autor || "";
-  document.getElementById("caminho-input").value = data.modulo || "";
 
   await categoriaApi.pronto;
   if (data.categoria) categoriaApi.selectEl.value = data.categoria;
