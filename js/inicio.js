@@ -290,7 +290,8 @@ function abrirPainel(solucao) {
 
   const tipoInfo = TIPO_INFO[solucao.tipo] || { label: solucao.tipo || "—", cor: "#6b7280", fundo: "#f2f3f5" };
   const criticidadeInfo = CRITICIDADE_INFO[solucao.criticidade];
-  const tags = [...(solucao.sintomas || []), ...(solucao.tabelas_campos || [])];
+  const sintomas = solucao.sintomas || [];
+  const tabelasCampos = solucao.tabelas_campos || [];
 
   painelTipoEl.textContent = tipoInfo.label;
   painelTipoEl.style.backgroundColor = tipoInfo.fundo;
@@ -325,10 +326,17 @@ function abrirPainel(solucao) {
 
     ${corpoTipo}
 
-    ${tags.length > 0 ? `
+    ${sintomas.length > 0 ? `
       <div class="painel__secao">
-        <span class="painel__secao-titulo">Palavras-chave</span>
-        <div class="painel-tags">${tags.map((t) => `<span class="solucao-card__tag">${t}</span>`).join("")}</div>
+        <span class="painel__secao-titulo">Sintomas e palavras-chave</span>
+        <div class="painel-tags">${sintomas.map((t) => `<span class="solucao-card__tag">${t}</span>`).join("")}</div>
+      </div>
+    ` : ""}
+
+    ${tabelasCampos.length > 0 ? `
+      <div class="painel__secao">
+        <span class="painel__secao-titulo">Tabelas e campos envolvidos</span>
+        <div class="painel-tags">${tabelasCampos.map((t) => `<span class="solucao-card__tag">${t}</span>`).join("")}</div>
       </div>
     ` : ""}
 
