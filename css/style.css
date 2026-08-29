@@ -335,15 +335,12 @@ body {
   flex: 1 1 auto;
 }
 
-.ordenar-linha {
-  margin-bottom: 14px;
-}
-
 .ordenar-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  margin-left: auto;
   background-color: var(--cor-superficie);
   border: 1px solid var(--cor-borda);
   border-radius: 999px;

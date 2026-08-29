@@ -6,7 +6,6 @@ const grade = document.getElementById("solucoes-grade");
 const vazioEl = document.getElementById("solucoes-vazio");
 
 const filtroTipo = document.getElementById("filtro-tipo");
-const filtroModulo = document.getElementById("filtro-modulo");
 const filtroCategoria = document.getElementById("filtro-categoria");
 const filtroCriticidade = document.getElementById("filtro-criticidade");
 const filtroAutor = document.getElementById("filtro-autor");
@@ -446,7 +445,6 @@ async function carregarSelectDaTabela(tabela, selectEl) {
 
 const LABELS_FILTRO = {
   tipo: "Tipo",
-  modulo: "Caminho",
   categoria: "Categoria",
   criticidade: "Prioridade",
   autor: "Autor",
@@ -456,7 +454,6 @@ const LABELS_FILTRO = {
 function obterFiltrosAtivos() {
   return {
     tipo: filtroTipo.value,
-    modulo: filtroModulo.value,
     categoria: filtroCategoria.value,
     criticidade: filtroCriticidade.value,
     autor: filtroAutor.value,
@@ -512,7 +509,6 @@ function renderizarLista() {
 
   let filtradas = solucoesTodas.filter((solucao) => {
     if (filtros.tipo && solucao.tipo !== filtros.tipo) return false;
-    if (filtros.modulo && solucao.modulo !== filtros.modulo) return false;
     if (filtros.categoria && solucao.categoria !== filtros.categoria) return false;
     if (filtros.criticidade && solucao.criticidade !== filtros.criticidade) return false;
     if (filtros.autor && solucao.autor !== filtros.autor) return false;
@@ -566,7 +562,6 @@ async function carregarContagemESolucoes() {
   contagemEl.textContent = `${(count || 0).toLocaleString("pt-BR")} soluções cadastradas`;
 
   preencherFiltroDinamico(filtroAutor, solucoesTodas.map((s) => s.autor));
-  preencherFiltroDinamico(filtroModulo, solucoesTodas.map((s) => s.modulo));
 
   renderizarLista();
 
@@ -580,14 +575,14 @@ async function carregarContagemESolucoes() {
 carregarContagemESolucoes();
 carregarSelectDaTabela("categorias", filtroCategoria);
 
-[filtroTipo, filtroModulo, filtroCategoria, filtroCriticidade, filtroAutor, filtroPeriodo].forEach((select) => {
+[filtroTipo, filtroCategoria, filtroCriticidade, filtroAutor, filtroPeriodo].forEach((select) => {
   select.addEventListener("change", renderizarLista);
 });
 
 buscaInput.addEventListener("input", renderizarLista);
 
 filtrosLimparBtn.addEventListener("click", () => {
-  [filtroTipo, filtroModulo, filtroCategoria, filtroCriticidade, filtroAutor, filtroPeriodo].forEach((select) => {
+  [filtroTipo, filtroCategoria, filtroCriticidade, filtroAutor, filtroPeriodo].forEach((select) => {
     select.value = "";
   });
   renderizarLista();
