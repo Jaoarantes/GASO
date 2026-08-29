@@ -17,6 +17,104 @@ function separarCaminho(modulo) {
   return { pagina: modulo.slice(0, indice), caminho: modulo.slice(indice + 3) };
 }
 
+let relacionadasApi = null;
+let vincularAtivo = null;
+
+document.addEventListener("click", (event) => {
+  if (!vincularAtivo) return;
+  const { resultadosEl, inputEl } = vincularAtivo;
+  if (!resultadosEl.contains(event.target) && event.target !== inputEl) {
+    resultadosEl.hidden = true;
+  }
+});
+
+function ativarSolucoesRelacionadas(relacionadasIniciais) {
+  const inputEl = document.getElementById("vincular-input");
+  const resultadosEl = document.getElementById("vincular-resultados");
+  const listaEl = document.getElementById("relacionadas-lista");
+
+  let selecionadas = [];
+  let buscaTimer = null;
+
+  function renderizarSelecionadas() {
+    listaEl.innerHTML = "";
+    selecionadas.forEach((item) => {
+      const linha = document.createElement("div");
+      linha.className = "relacionada-item";
+      linha.innerHTML = `
+        <span class="relacionada-item__titulo">${item.titulo || "Sem título"}</span>
+        <button type="button" class="relacionada-item__remover" aria-label="Remover vínculo">×</button>
+      `;
+      linha.querySelector(".relacionada-item__remover").addEventListener("click", () => {
+        selecionadas = selecionadas.filter((s) => s.id !== item.id);
+        renderizarSelecionadas();
+      });
+      listaEl.appendChild(linha);
+    });
+  }
+
+  function esconderResultados() {
+    resultadosEl.hidden = true;
+    resultadosEl.innerHTML = "";
+  }
+
+  function adicionar(item) {
+    if (selecionadas.some((s) => s.id === item.id)) return;
+    selecionadas.push(item);
+    renderizarSelecionadas();
+    inputEl.value = "";
+    esconderResultados();
+  }
+
+  async function buscar(termo) {
+    let query = supabase.from("solucoes").select("id,titulo").ilike("titulo", `%${termo}%`).limit(8);
+    if (idEdicao) query = query.neq("id", idEdicao);
+    const { data } = await query;
+    const resultados = (data || []).filter((r) => !selecionadas.some((s) => s.id === r.id));
+
+    resultadosEl.innerHTML = "";
+    if (resultados.length === 0) {
+      resultadosEl.innerHTML = `<span class="vincular-resultados__vazio">Nenhuma solução encontrada.</span>`;
+    } else {
+      resultados.forEach((registro) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "vincular-resultado-item";
+        btn.textContent = registro.titulo || "Sem título";
+        btn.addEventListener("click", () => adicionar(registro));
+        resultadosEl.appendChild(btn);
+      });
+    }
+    resultadosEl.hidden = false;
+  }
+
+  inputEl.addEventListener("input", () => {
+    const termo = inputEl.value.trim();
+    clearTimeout(buscaTimer);
+    if (!termo) {
+      esconderResultados();
+      return;
+    }
+    buscaTimer = setTimeout(() => buscar(termo), 250);
+  });
+
+  inputEl.addEventListener("focus", () => {
+    if (inputEl.value.trim()) resultadosEl.hidden = false;
+  });
+
+  if (relacionadasIniciais && relacionadasIniciais.length > 0) {
+    supabase.from("solucoes").select("id,titulo").in("id", relacionadasIniciais).then(({ data }) => {
+      selecionadas = data || [];
+      renderizarSelecionadas();
+    });
+  }
+
+  vincularAtivo = { resultadosEl, inputEl };
+  relacionadasApi = {
+    coletar: () => selecionadas.map((s) => s.id)
+  };
+}
+
 function ativarCampoTags(containerId, inputId) {
   const container = document.getElementById(containerId);
   const input = document.getElementById(inputId);
@@ -337,8 +435,9 @@ function criarCamposErro(solucao) {
         <label class="campo-label">Soluções relacionadas</label>
         <div class="vincular-campo">
           <svg class="vincular-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input class="vincular-input" type="text" placeholder="Buscar registro para vincular...">
+          <input class="vincular-input" type="text" id="vincular-input" placeholder="Buscar registro para vincular...">
         </div>
+        <div class="vincular-resultados" id="vincular-resultados" hidden></div>
         <div class="relacionadas-lista" id="relacionadas-lista"></div>
       </div>
     </div>
@@ -348,6 +447,7 @@ function criarCamposErro(solucao) {
   const tabelasApi = ativarCampoTags("tabelas-campo", "tabelas-input");
   ativarPassoAPasso(solucao?.passos);
   ativarAnexos(solucao?.anexos);
+  ativarSolucoesRelacionadas(solucao?.relacionadas);
 
   if (solucao) {
     registroCampos.querySelector(".campo-titulo-input").value = solucao.titulo || "";
@@ -494,8 +594,9 @@ function criarCamposScript(solucao) {
         <label class="campo-label">Soluções relacionadas</label>
         <div class="vincular-campo">
           <svg class="vincular-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input class="vincular-input" type="text" placeholder="Buscar registro para vincular...">
+          <input class="vincular-input" type="text" id="vincular-input" placeholder="Buscar registro para vincular...">
         </div>
+        <div class="vincular-resultados" id="vincular-resultados" hidden></div>
         <div class="relacionadas-lista" id="relacionadas-lista"></div>
       </div>
     </div>
@@ -506,6 +607,7 @@ function criarCamposScript(solucao) {
   ativarParametros(solucao?.parametros);
   ativarRisco();
   ativarAnexos(solucao?.anexos);
+  ativarSolucoesRelacionadas(solucao?.relacionadas);
 
   if (solucao) {
     registroCampos.querySelector(".campo-titulo-input").value = solucao.titulo || "";
@@ -732,7 +834,8 @@ salvarBtn.addEventListener("click", async () => {
             document.getElementById("caminho-texto-input")?.value.trim()
           )
         : null,
-      criticidade: document.querySelector(".criticidade-btn--ativo")?.dataset.criticidade || null
+      criticidade: document.querySelector(".criticidade-btn--ativo")?.dataset.criticidade || null,
+      relacionadas: relacionadasApi ? relacionadasApi.coletar() : []
     };
 
     let error;

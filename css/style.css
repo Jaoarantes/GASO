@@ -1313,6 +1313,82 @@ select.publicacao-select {
   margin-top: 10px;
 }
 
+.vincular-resultados {
+  margin-top: 6px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  background-color: var(--cor-superficie);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.vincular-resultados[hidden] {
+  display: none;
+}
+
+.vincular-resultado-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--cor-borda);
+  background: none;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.vincular-resultado-item:last-child {
+  border-bottom: none;
+}
+
+.vincular-resultado-item:hover {
+  background-color: var(--cor-fundo);
+}
+
+.vincular-resultados__vazio {
+  display: block;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--cor-texto-fraco);
+}
+
+.relacionada-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--cor-borda);
+  background-color: var(--cor-fundo);
+  border-radius: var(--raio-sm);
+  padding: 8px 12px;
+}
+
+.relacionada-item__titulo {
+  font-size: 13px;
+  color: var(--cor-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relacionada-item__remover {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--cor-texto-fraco);
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.relacionada-item__remover:hover {
+  color: var(--cor-erro);
+}
+
 /* Bloco de código */
 
 .codigo-bloco {
@@ -1997,4 +2073,29 @@ select.publicacao-select {
 
 .painel__erro:empty {
   display: none;
+}
+
+.painel-relacionadas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.painel-relacionada {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--cor-borda);
+  background-color: var(--cor-fundo);
+  border-radius: var(--raio-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.painel-relacionada:hover {
+  background-color: var(--cor-superficie);
+  border-color: var(--cor-primaria);
 }

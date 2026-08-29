@@ -264,6 +264,25 @@ function renderizarCorpoScript(solucao) {
   `;
 }
 
+function renderizarRelacionadasPainel(relacionadas) {
+  if (!relacionadas || relacionadas.length === 0) return "";
+
+  const itens = relacionadas
+    .map((id) => solucoesTodas.find((s) => s.id === id))
+    .filter(Boolean)
+    .map((s) => `<button type="button" class="painel-relacionada" data-id="${s.id}">${s.titulo || "Sem título"}</button>`)
+    .join("");
+
+  if (!itens) return "";
+
+  return `
+    <div class="painel__secao">
+      <span class="painel__secao-titulo">Soluções relacionadas</span>
+      <div class="painel-relacionadas">${itens}</div>
+    </div>
+  `;
+}
+
 function renderizarAnexosPainel(anexos) {
   if (!anexos || anexos.length === 0) return "";
   const itens = anexos.map((anexo) => `<li><a href="${anexo.url}" target="_blank" rel="noopener">${anexo.nome}</a></li>`).join("");
@@ -324,6 +343,8 @@ function abrirPainel(solucao) {
     ` : ""}
 
     ${renderizarAnexosPainel(solucao.anexos)}
+
+    ${renderizarRelacionadasPainel(solucao.relacionadas)}
   `;
 
   painelOverlay.hidden = false;
@@ -396,6 +417,10 @@ painelCopiarBtn.addEventListener("click", async () => {
 painelCorpoEl.addEventListener("click", (event) => {
   if (event.target.classList.contains("painel-passo__imagem")) {
     abrirLightbox(event.target.src, event.target.alt);
+  }
+  if (event.target.classList.contains("painel-relacionada")) {
+    const alvo = solucoesTodas.find((s) => s.id === event.target.dataset.id);
+    if (alvo) abrirPainel(alvo);
   }
 });
 
