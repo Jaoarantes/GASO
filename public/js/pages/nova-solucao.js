@@ -95,7 +95,7 @@ function ativarSolucoesRelacionadas(relacionadasIniciais) {
       esconderResultados();
       return;
     }
-    buscaTimer = setTimeout(() => buscar(termo), 250);
+    buscaTimer = setTimeout(() => buscar(termo), 80);
   });
 
   inputEl.addEventListener("focus", () => {

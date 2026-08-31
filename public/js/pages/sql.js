@@ -416,7 +416,7 @@ let buscaTimer = null;
 
 buscaInput.addEventListener("input", () => {
   clearTimeout(buscaTimer);
-  buscaTimer = setTimeout(buscar, 300);
+  buscaTimer = setTimeout(buscar, 80);
 });
 
 buscaInput.addEventListener("keydown", (event) => {

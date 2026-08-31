@@ -104,7 +104,6 @@ body {
   background-color: var(--cor-fundo);
   color: var(--cor-texto);
   min-height: 100vh;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar {
@@ -117,7 +116,6 @@ body {
   flex-direction: column;
   background-color: var(--cor-sidebar);
   border-right: 1px solid var(--cor-divisor);
-  transition: background-color 0.2s ease, border-color 0.2s ease, width 0.2s var(--easing);
 }
 
 .sidebar__menu {
@@ -200,21 +198,21 @@ body {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--cor-borda);
+  border: 1px solid var(--cor-primaria);
   border-radius: var(--raio-sm);
-  background-color: var(--cor-superficie);
-  color: var(--cor-texto-fraco);
+  background-color: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
   cursor: pointer;
 }
 
 .sidebar__colapsar:hover {
-  background-color: var(--cor-fundo);
+  background-color: var(--cor-primaria);
+  color: #ffffff;
 }
 
 .sidebar__colapsar svg {
   width: 14px;
   height: 14px;
-  transition: transform 0.2s var(--easing);
 }
 
 html[data-sidebar="colapsada"] .sidebar__colapsar svg {
@@ -251,7 +249,6 @@ html[data-sidebar="colapsada"] .sidebar__menu {
   height: var(--altura-topo);
   background-color: var(--cor-sidebar);
   border-bottom: 1px solid var(--cor-divisor);
-  transition: background-color 0.2s ease, border-color 0.2s ease, left 0.2s var(--easing);
   z-index: 900;
 }
 
@@ -269,7 +266,6 @@ html[data-sidebar="colapsada"] .sidebar__logo {
 .conteudo {
   margin-left: var(--largura-sidebar);
   margin-top: var(--altura-topo);
-  transition: margin-left 0.2s var(--easing);
 }
 
 .text-header {
