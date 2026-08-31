@@ -1,4 +1,5 @@
 import { TABELAS_API_URL, TABELAS_API_KEY } from "../config/tabelas-api-config.js";
+import { supabase } from "../config/supabase-config.js";
 
 const contagemEl = document.getElementById("busca-contagem");
 const buscaInput = document.getElementById("busca-input");
@@ -93,33 +94,54 @@ async function carregarFiltros() {
   }
 }
 
-const FAVORITAS_CHAVE = "tabelasFavoritas";
+// Favoritos ficam salvos no Supabase (tabela tabelas_favoritas), nao no
+// localStorage — sao globais, o mesmo favorito aparece pra todo mundo que
+// usa o sistema, ja que o login e compartilhado.
+let favoritasCache = [];
 
-function obterFavoritas() {
-  try {
-    return JSON.parse(localStorage.getItem(FAVORITAS_CHAVE) || "[]");
-  } catch {
-    return [];
+async function carregarFavoritasCache() {
+  const { data, error } = await supabase.from("tabelas_favoritas").select("*").order("tabela");
+  if (error) {
+    console.error("Erro ao carregar tabelas favoritas:", error);
+    favoritasCache = [];
+    return;
   }
-}
-
-function salvarFavoritas(lista) {
-  localStorage.setItem(FAVORITAS_CHAVE, JSON.stringify(lista));
+  favoritasCache = data || [];
 }
 
 function ehFavorita(nomeTabela) {
-  return obterFavoritas().some((t) => t.tabela === nomeTabela);
+  return favoritasCache.some((t) => t.tabela === nomeTabela);
 }
 
-function alternarFavorita(tabela) {
-  const lista = obterFavoritas();
-  const indice = lista.findIndex((t) => t.tabela === tabela.tabela);
-  if (indice > -1) {
-    lista.splice(indice, 1);
-  } else {
-    lista.push(tabela);
+async function adicionarFavorita(tabela) {
+  const { error } = await supabase.from("tabelas_favoritas").upsert(
+    {
+      tabela: tabela.tabela,
+      modulo: tabela.modulo || null,
+      tipo: tabela.tipo || null,
+      descricao: tabela.descricao || null
+    },
+    { onConflict: "tabela" }
+  );
+
+  if (error) {
+    console.error("Erro ao favoritar tabela:", error);
+    return;
   }
-  salvarFavoritas(lista);
+
+  await carregarFavoritasCache();
+  renderizarFavoritas();
+}
+
+async function removerFavorita(nomeTabela) {
+  const { error } = await supabase.from("tabelas_favoritas").delete().eq("tabela", nomeTabela);
+
+  if (error) {
+    console.error("Erro ao remover tabela dos favoritos:", error);
+    return;
+  }
+
+  await carregarFavoritasCache();
   renderizarFavoritas();
 }
 
@@ -127,16 +149,15 @@ const favoritasSecaoEl = document.getElementById("favoritas-secao");
 const favoritasGradeEl = document.getElementById("favoritas-grade");
 
 function renderizarFavoritas() {
-  const favoritas = obterFavoritas();
   favoritasGradeEl.innerHTML = "";
 
-  if (favoritas.length === 0) {
+  if (favoritasCache.length === 0) {
     favoritasSecaoEl.hidden = true;
     return;
   }
 
   favoritasSecaoEl.hidden = false;
-  favoritas.forEach((tabela) => favoritasGradeEl.appendChild(criarCard(tabela)));
+  favoritasCache.forEach((tabela) => favoritasGradeEl.appendChild(criarCard(tabela)));
 }
 
 function atualizarEstrelasNaTela() {
@@ -170,9 +191,9 @@ favoritaConfirmarCancelarBtn.addEventListener("click", fecharConfirmarRemocaoFav
 favoritaConfirmarOverlay.addEventListener("click", (event) => {
   if (event.target === favoritaConfirmarOverlay) fecharConfirmarRemocaoFavorita();
 });
-favoritaConfirmarRemoverBtn.addEventListener("click", () => {
+favoritaConfirmarRemoverBtn.addEventListener("click", async () => {
   if (tabelaParaRemoverFavorita) {
-    alternarFavorita(tabelaParaRemoverFavorita);
+    await removerFavorita(tabelaParaRemoverFavorita.tabela);
     atualizarEstrelasNaTela();
   }
   fecharConfirmarRemocaoFavorita();
@@ -204,12 +225,12 @@ function criarCard(tabela) {
     <div class="solucao-card__tags">${tagsHtml}</div>
   `;
 
-  card.querySelector(".favorita-btn").addEventListener("click", (event) => {
+  card.querySelector(".favorita-btn").addEventListener("click", async (event) => {
     event.stopPropagation();
     if (ehFavorita(tabela.tabela)) {
       abrirConfirmarRemocaoFavorita(tabela);
     } else {
-      alternarFavorita(tabela);
+      await adicionarFavorita(tabela);
       atualizarEstrelasNaTela();
     }
   });
@@ -430,4 +451,4 @@ filtroModulo.addEventListener("change", buscar);
 filtroTipo.addEventListener("change", buscar);
 
 carregarFiltros();
-renderizarFavoritas();
+carregarFavoritasCache().then(renderizarFavoritas);
