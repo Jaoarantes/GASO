@@ -157,8 +157,18 @@ async function buscar() {
   }
 }
 
+let buscaTimer = null;
+
+buscaInput.addEventListener("input", () => {
+  clearTimeout(buscaTimer);
+  buscaTimer = setTimeout(buscar, 300);
+});
+
 buscaInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") buscar();
+  if (event.key === "Enter") {
+    clearTimeout(buscaTimer);
+    buscar();
+  }
 });
 
 filtroModulo.addEventListener("change", buscar);
