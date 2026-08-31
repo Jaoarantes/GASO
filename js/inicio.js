@@ -29,6 +29,7 @@ function aplicarVisualizacao(modo) {
   grade.classList.toggle("solucoes-grade--lista", modo === "lista");
   visualizacaoGradeBtn.classList.toggle("visualizacao-btn--ativo", modo === "grade");
   visualizacaoListaBtn.classList.toggle("visualizacao-btn--ativo", modo === "lista");
+  renderizarLista();
 }
 
 visualizacaoGradeBtn.addEventListener("click", () => aplicarVisualizacao("grade"));
@@ -77,9 +78,10 @@ function criarCard(solucao) {
   const card = document.createElement("div");
   card.className = "solucao-card";
 
+  const emLista = grade.classList.contains("solucoes-grade--lista");
   const tags = montarTags(solucao);
-  const tagsVisiveis = tags.slice(0, 3);
-  const tagsRestantes = tags.length - tagsVisiveis.length;
+  const tagsVisiveis = emLista ? tags : tags.slice(0, 3);
+  const tagsRestantes = emLista ? 0 : tags.length - tagsVisiveis.length;
 
   const tagsHtml = tagsVisiveis.map((tag) => `<span class="solucao-card__tag">${tag}</span>`).join("")
     + (tagsRestantes > 0 ? `<span class="solucao-card__tag solucao-card__tag--mais">+${tagsRestantes}</span>` : "");
