@@ -62,6 +62,13 @@ function preencherSelect(selectEl, valores) {
   });
 }
 
+const TIPO_TABELA_INFO = {
+  "Cadastro/Base": { cor: "var(--tabela-cadastro-cor)", fundo: "var(--tabela-cadastro-fundo)" },
+  "Trabalho/Temporária": { cor: "var(--tabela-trabalho-cor)", fundo: "var(--tabela-trabalho-fundo)" },
+  "Sistema (Oracle/APEX)": { cor: "var(--tabela-sistema-cor)", fundo: "var(--tabela-sistema-fundo)" },
+  "Diversos/Não padronizado": { cor: "var(--tabela-diversos-cor)", fundo: "var(--tabela-diversos-fundo)" }
+};
+
 async function carregarFiltros() {
   try {
     const dados = await chamarApi({ acao: "filtros" });
@@ -76,6 +83,8 @@ function criarCard(tabela) {
   const card = document.createElement("div");
   card.className = "solucao-card";
 
+  const tipoInfo = TIPO_TABELA_INFO[tabela.tipo] || { cor: "var(--cor-texto-suave)", fundo: "var(--cor-bloco-meta)" };
+
   const tagsHtml = [tabela.modulo, tabela.tipo]
     .filter(Boolean)
     .map((tag) => `<span class="solucao-card__tag">${tag}</span>`)
@@ -83,7 +92,7 @@ function criarCard(tabela) {
 
   card.innerHTML = `
     <div class="solucao-card__topo">
-      <span class="tipo-pill" style="background-color: var(--cor-bloco-meta); color: var(--cor-texto-suave);">${tabela.tipo || "—"}</span>
+      <span class="tipo-pill" style="background-color: ${tipoInfo.fundo}; color: ${tipoInfo.cor};">${tabela.tipo || "—"}</span>
     </div>
 
     <h3 class="solucao-card__titulo">${tabela.tabela || "Sem nome"}</h3>
