@@ -90,7 +90,7 @@
 }
 
 html[data-sidebar="colapsada"] {
-  --largura-sidebar: 76px;
+  --largura-sidebar: 96px;
 }
 
 * {
@@ -222,8 +222,8 @@ html[data-sidebar="colapsada"] .sidebar__colapsar svg {
 }
 
 html[data-sidebar="colapsada"] .sidebar__topo {
-  padding: 25px 10px;
-  gap: 6px;
+  padding: 25px 16px;
+  gap: 8px;
   justify-content: center;
 }
 
@@ -261,14 +261,9 @@ html[data-sidebar="colapsada"] .sidebar__menu {
 }
 
 html[data-sidebar="colapsada"] .sidebar__logo {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
-}
-
-html[data-sidebar="colapsada"] .sidebar__colapsar {
-  width: 24px;
-  height: 24px;
 }
 
 .conteudo {

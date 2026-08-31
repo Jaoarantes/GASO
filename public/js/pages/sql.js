@@ -139,6 +139,45 @@ function renderizarFavoritas() {
   favoritas.forEach((tabela) => favoritasGradeEl.appendChild(criarCard(tabela)));
 }
 
+function atualizarEstrelasNaTela() {
+  document.querySelectorAll(".favorita-btn[data-tabela]").forEach((btn) => {
+    const favoritada = ehFavorita(btn.dataset.tabela);
+    btn.classList.toggle("favorita-btn--ativa", favoritada);
+    btn.setAttribute("aria-label", favoritada ? "Remover dos favoritos" : "Adicionar aos favoritos");
+    btn.querySelector("svg").setAttribute("fill", favoritada ? "currentColor" : "none");
+  });
+}
+
+const favoritaConfirmarOverlay = document.getElementById("favorita-confirmar-overlay");
+const favoritaConfirmarTexto = document.getElementById("favorita-confirmar-texto");
+const favoritaConfirmarCancelarBtn = document.getElementById("favorita-confirmar-cancelar");
+const favoritaConfirmarRemoverBtn = document.getElementById("favorita-confirmar-remover");
+
+let tabelaParaRemoverFavorita = null;
+
+function abrirConfirmarRemocaoFavorita(tabela) {
+  tabelaParaRemoverFavorita = tabela;
+  favoritaConfirmarTexto.textContent = `Remover "${tabela.tabela}" dos favoritos?`;
+  favoritaConfirmarOverlay.hidden = false;
+}
+
+function fecharConfirmarRemocaoFavorita() {
+  favoritaConfirmarOverlay.hidden = true;
+  tabelaParaRemoverFavorita = null;
+}
+
+favoritaConfirmarCancelarBtn.addEventListener("click", fecharConfirmarRemocaoFavorita);
+favoritaConfirmarOverlay.addEventListener("click", (event) => {
+  if (event.target === favoritaConfirmarOverlay) fecharConfirmarRemocaoFavorita();
+});
+favoritaConfirmarRemoverBtn.addEventListener("click", () => {
+  if (tabelaParaRemoverFavorita) {
+    alternarFavorita(tabelaParaRemoverFavorita);
+    atualizarEstrelasNaTela();
+  }
+  fecharConfirmarRemocaoFavorita();
+});
+
 function criarCard(tabela) {
   const card = document.createElement("div");
   card.className = "solucao-card";
@@ -154,7 +193,7 @@ function criarCard(tabela) {
   card.innerHTML = `
     <div class="solucao-card__topo">
       <span class="tipo-pill" style="background-color: ${tipoInfo.fundo}; color: ${tipoInfo.cor};">${tabela.tipo || "—"}</span>
-      <button class="favorita-btn${favoritada ? " favorita-btn--ativa" : ""}" type="button" aria-label="${favoritada ? "Remover dos favoritos" : "Adicionar aos favoritos"}">
+      <button class="favorita-btn${favoritada ? " favorita-btn--ativa" : ""}" type="button" data-tabela="${tabela.tabela}" aria-label="${favoritada ? "Remover dos favoritos" : "Adicionar aos favoritos"}">
         <svg viewBox="0 0 24 24" fill="${favoritada ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
       </button>
     </div>
@@ -167,13 +206,12 @@ function criarCard(tabela) {
 
   card.querySelector(".favorita-btn").addEventListener("click", (event) => {
     event.stopPropagation();
-    alternarFavorita(tabela);
-
-    const agoraFavoritada = ehFavorita(tabela.tabela);
-    const btn = event.currentTarget;
-    btn.classList.toggle("favorita-btn--ativa", agoraFavoritada);
-    btn.setAttribute("aria-label", agoraFavoritada ? "Remover dos favoritos" : "Adicionar aos favoritos");
-    btn.querySelector("svg").setAttribute("fill", agoraFavoritada ? "currentColor" : "none");
+    if (ehFavorita(tabela.tabela)) {
+      abrirConfirmarRemocaoFavorita(tabela);
+    } else {
+      alternarFavorita(tabela);
+      atualizarEstrelasNaTela();
+    }
   });
 
   card.addEventListener("click", () => abrirPainel(tabela));
@@ -298,18 +336,30 @@ painelOverlay.addEventListener("click", (event) => {
   if (event.target === painelOverlay) fecharPainel();
 });
 
+function comFavoritasPrimeiro(tabelas) {
+  return [...tabelas].sort((a, b) => {
+    const favA = ehFavorita(a.tabela) ? 0 : 1;
+    const favB = ehFavorita(b.tabela) ? 0 : 1;
+    return favA - favB;
+  });
+}
+
 function renderizarResultados(tabelas) {
+  favoritasSecaoEl.hidden = true;
   grade.innerHTML = "";
 
-  if (tabelas.length === 0) {
+  const ordenadas = comFavoritasPrimeiro(tabelas);
+
+  if (ordenadas.length === 0) {
     vazioEl.hidden = false;
   } else {
     vazioEl.hidden = true;
-    tabelas.forEach((tabela) => grade.appendChild(criarCard(tabela)));
+    ordenadas.forEach((tabela) => grade.appendChild(criarCard(tabela)));
   }
 }
 
 function mostrarMensagem(mensagem) {
+  favoritasSecaoEl.hidden = true;
   grade.innerHTML = "";
   vazioEl.textContent = mensagem;
   vazioEl.hidden = false;
@@ -338,6 +388,7 @@ async function buscar() {
       grade.innerHTML = "";
       vazioEl.hidden = true;
       contagemEl.textContent = "";
+      renderizarFavoritas();
       return;
     }
 

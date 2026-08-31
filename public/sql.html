@@ -127,6 +127,17 @@
     </aside>
   </div>
 
+  <div class="painel-overlay painel-overlay--centralizado" id="favorita-confirmar-overlay" hidden>
+    <div class="confirmar-modal">
+      <h3 class="confirmar-modal__titulo">Remover dos favoritos</h3>
+      <p class="confirmar-modal__texto" id="favorita-confirmar-texto"></p>
+      <div class="confirmar-modal__acoes">
+        <button class="confirmar-modal__cancelar" type="button" id="favorita-confirmar-cancelar">Cancelar</button>
+        <button class="confirmar-modal__confirmar" type="button" id="favorita-confirmar-remover">Remover</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="js/auth-guard.js"></script>
   <script type="module" src="js/main.js"></script>
   <script type="module" src="js/pages/sql.js"></script>
