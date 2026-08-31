@@ -347,10 +347,14 @@ if ($acao === 'colunas') {
         responder_erro(400, 'Parâmetro tabela obrigatório.');
     }
 
-    $sql = 'SELECT table_name AS tabela, column_name AS coluna, comments AS descricao'
-         . ' FROM ALL_COL_COMMENTS'
-         . ' WHERE owner = USER AND table_name = :tabela'
-         . ' ORDER BY column_name';
+    // Junta com ALL_TAB_COLUMNS só pra pegar column_id (ordem fisica das
+    // colunas na tabela) — ALL_COL_COMMENTS sozinha nao tem essa informacao.
+    $sql = 'SELECT cc.table_name AS tabela, cc.column_name AS coluna, cc.comments AS descricao'
+         . ' FROM ALL_COL_COMMENTS cc'
+         . ' JOIN ALL_TAB_COLUMNS tc'
+         . '   ON tc.owner = cc.owner AND tc.table_name = cc.table_name AND tc.column_name = cc.column_name'
+         . ' WHERE cc.owner = USER AND cc.table_name = :tabela'
+         . ' ORDER BY tc.column_id';
 
     try {
         $pdo = pdo_oracle();
