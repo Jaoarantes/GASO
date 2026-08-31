@@ -4,6 +4,12 @@
 // o site estático (Vercel) e o banco Oracle nlprod. Extraído da lógica de
 // conexão Oracle de server/conecta.php — não inclui MySQL Locaweb/financeiro,
 // que não têm relação com esta tela.
+//
+// Duas ações via ?acao=:
+//   filtros — devolve os valores distintos de módulo/tipo (pros <select>).
+//   buscar  — recebe q/modulo/tipo, pontua cada tabela pelos termos digitados
+//             (nome pesa mais que descrição) e devolve só as que pontuam,
+//             ordenadas da mais relevante pra menos relevante.
 declare(strict_types=1);
 
 // ── Carrega variáveis de server/api/.env (sem depender de SetEnv/Composer,
@@ -130,55 +136,139 @@ function pdo_oracle(): PDO {
     throw new RuntimeException('Falha ao conectar no Oracle via PDO ODBC. Último erro: ' . ($err ?: 'desconhecido'));
 }
 
-// ── Consulta ──────────────────────────────────────────────────────────────
-const SQL_CATALOGO_TABELAS = <<<SQL
-SELECT
-    tc.table_name AS tabela,
-    CASE
-        WHEN tc.table_name LIKE 'APEX\$%'
-          OR tc.table_name LIKE 'MLOG\$%'
-          OR tc.table_name LIKE 'CMP3\$%'
-          OR tc.table_name LIKE 'JAVA\$%'
-          OR tc.table_name LIKE 'CREATE\$JAVA\$%'
-            THEN '(sem padrao)'
-        WHEN INSTR(tc.table_name, '_') = 0
-            THEN '(sem padrao)'
-        ELSE SUBSTR(tc.table_name, 1, INSTR(tc.table_name, '_') - 1)
-    END AS modulo,
-    CASE
-        WHEN tc.table_name LIKE 'APEX\$%'
-          OR tc.table_name LIKE 'MLOG\$%'
-          OR tc.table_name LIKE 'CMP3\$%'
-          OR tc.table_name LIKE 'JAVA\$%'
-          OR tc.table_name LIKE 'CREATE\$JAVA\$%'
-            THEN 'Sistema (Oracle/APEX)'
-        WHEN INSTR(tc.table_name, '_') = 0
-            THEN 'Diversos/Nao padronizado'
-        WHEN SUBSTR(tc.table_name, 1, INSTR(tc.table_name, '_') - 1) LIKE '%W'
-            THEN 'Trabalho/Temporaria'
-        ELSE 'Cadastro/Base'
-    END AS tipo,
-    tc.comments AS descricao
-FROM ALL_TAB_COMMENTS tc
-WHERE tc.owner      = USER
-  AND tc.table_type = 'TABLE'
-ORDER BY tabela ASC
+// Base comum: calcula tabela/modulo/tipo/descricao a partir do catálogo do
+// Oracle. As demais queries usam isso como subquery (WITH).
+const SQL_BASE_CATALOGO = <<<SQL
+WITH catalogo AS (
+    SELECT
+        tc.table_name AS tabela,
+        CASE
+            WHEN tc.table_name LIKE 'APEX\$%'
+              OR tc.table_name LIKE 'MLOG\$%'
+              OR tc.table_name LIKE 'CMP3\$%'
+              OR tc.table_name LIKE 'JAVA\$%'
+              OR tc.table_name LIKE 'CREATE\$JAVA\$%'
+                THEN '(sem padrao)'
+            WHEN INSTR(tc.table_name, '_') = 0
+                THEN '(sem padrao)'
+            ELSE SUBSTR(tc.table_name, 1, INSTR(tc.table_name, '_') - 1)
+        END AS modulo,
+        CASE
+            WHEN tc.table_name LIKE 'APEX\$%'
+              OR tc.table_name LIKE 'MLOG\$%'
+              OR tc.table_name LIKE 'CMP3\$%'
+              OR tc.table_name LIKE 'JAVA\$%'
+              OR tc.table_name LIKE 'CREATE\$JAVA\$%'
+                THEN 'Sistema (Oracle/APEX)'
+            WHEN INSTR(tc.table_name, '_') = 0
+                THEN 'Diversos/Nao padronizado'
+            WHEN SUBSTR(tc.table_name, 1, INSTR(tc.table_name, '_') - 1) LIKE '%W'
+                THEN 'Trabalho/Temporaria'
+            ELSE 'Cadastro/Base'
+        END AS tipo,
+        tc.comments AS descricao
+    FROM ALL_TAB_COMMENTS tc
+    WHERE tc.owner      = USER
+      AND tc.table_type = 'TABLE'
+)
 SQL;
 
-try {
-    $pdo = pdo_oracle();
-    $stmt = $pdo->query(SQL_CATALOGO_TABELAS);
-    $linhas = $stmt->fetchAll();
-} catch (Throwable $e) {
-    responder_erro(500, 'Erro ao consultar o banco de dados.');
+function normalizar_lista(array $linhas): array {
+    return array_map(
+        fn(array $linha): array => array_change_key_case($linha, CASE_LOWER),
+        $linhas
+    );
 }
 
-// O driver ODBC do Oracle devolve nomes de coluna em maiúsculo
-// independentemente do alias usado no SQL — normaliza para minúsculo antes
-// de responder, já que o frontend espera { tabela, modulo, tipo, descricao }.
-$linhas = array_map(
-    fn(array $linha): array => array_change_key_case($linha, CASE_LOWER),
-    $linhas
-);
+$acao = $_GET['acao'] ?? '';
 
-echo json_encode($linhas, JSON_UNESCAPED_UNICODE);
+if ($acao === 'filtros') {
+    $sql = SQL_BASE_CATALOGO . "\nSELECT DISTINCT modulo, tipo FROM catalogo ORDER BY modulo, tipo";
+    try {
+        $pdo = pdo_oracle();
+        $linhas = normalizar_lista($pdo->query($sql)->fetchAll());
+    } catch (Throwable $e) {
+        responder_erro(500, 'Erro ao consultar o banco de dados.');
+    }
+
+    echo json_encode([
+        'modulos' => array_values(array_unique(array_column($linhas, 'modulo'))),
+        'tipos'   => array_values(array_unique(array_column($linhas, 'tipo'))),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if ($acao === 'buscar') {
+    $termoBusca = trim((string)($_GET['q'] ?? ''));
+    $modulo     = trim((string)($_GET['modulo'] ?? ''));
+    $tipo       = trim((string)($_GET['tipo'] ?? ''));
+    $termos     = array_values(array_filter(
+        preg_split('/\s+/', $termoBusca) ?: [],
+        fn(string $t): bool => mb_strlen($t) >= 3
+    ));
+
+    if ($termos === [] && $modulo === '' && $tipo === '') {
+        echo json_encode([], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $condicoes = [];
+    $pontuacao = [];
+    $params = [];
+
+    foreach ($termos as $i => $termoOriginal) {
+        $paramNome = ":t{$i}";
+        $params[$paramNome] = '%' . strtoupper($termoOriginal) . '%';
+        $condicoes[] = "(UPPER(tabela) LIKE {$paramNome} OR UPPER(NVL(descricao, ' ')) LIKE {$paramNome})";
+        $pontuacao[] = "(CASE WHEN UPPER(tabela) LIKE {$paramNome} THEN 2 ELSE 0 END)";
+        $pontuacao[] = "(CASE WHEN UPPER(NVL(descricao, ' ')) LIKE {$paramNome} THEN 1 ELSE 0 END)";
+    }
+
+    $filtrosExtras = [];
+    if ($modulo !== '') {
+        $filtrosExtras[] = 'modulo = :modulo';
+        $params[':modulo'] = $modulo;
+    }
+    if ($tipo !== '') {
+        $filtrosExtras[] = 'tipo = :tipo';
+        $params[':tipo'] = $tipo;
+    }
+
+    $pontuacaoSql = $pontuacao === [] ? '0' : implode(' + ', $pontuacao);
+    $whereTermos = $condicoes === [] ? [] : ['(' . implode(' OR ', $condicoes) . ')'];
+    $whereClausulas = array_merge($whereTermos, $filtrosExtras);
+    $whereSql = $whereClausulas === [] ? '1 = 1' : implode(' AND ', $whereClausulas);
+
+    // Sem termos digitados (só filtros de módulo/tipo): não há pontuação por
+    // relevância, ordena por nome.
+    $ordemSql = $termos === [] ? 'tabela ASC' : 'pontuacao DESC, tabela ASC';
+
+    $sql = SQL_BASE_CATALOGO . <<<SQL
+
+    SELECT tabela, modulo, tipo, descricao, {$pontuacaoSql} AS pontuacao
+    FROM catalogo
+    WHERE {$whereSql}
+    ORDER BY {$ordemSql}
+    SQL;
+
+    try {
+        $pdo = pdo_oracle();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $linhas = normalizar_lista($stmt->fetchAll());
+    } catch (Throwable $e) {
+        responder_erro(500, 'Erro ao consultar o banco de dados.');
+    }
+
+    // Pontuação é só um detalhe de ordenação no servidor, não precisa ir pro
+    // frontend.
+    $linhas = array_map(function (array $linha): array {
+        unset($linha['pontuacao']);
+        return $linha;
+    }, $linhas);
+
+    echo json_encode($linhas, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+responder_erro(400, 'Parâmetro acao inválido. Use acao=filtros ou acao=buscar.');

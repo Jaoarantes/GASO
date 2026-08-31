@@ -8,30 +8,50 @@ const vazioEl = document.getElementById("tabelas-vazio");
 const filtroModulo = document.getElementById("filtro-modulo");
 const filtroTipo = document.getElementById("filtro-tipo");
 
-let tabelasTodas = [];
+const TAMANHO_MINIMO_TERMO = 3;
 
-function normalizar(texto) {
-  return (texto || "")
-    .toString()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
+function configurada() {
+  return Boolean(TABELAS_API_URL && TABELAS_API_KEY);
 }
 
-function preencherFiltroDinamico(selectEl, valores) {
-  const valorAtual = selectEl.value;
+async function chamarApi(params) {
+  const url = new URL(TABELAS_API_URL);
+  Object.entries(params).forEach(([chave, valor]) => {
+    if (valor) url.searchParams.set(chave, valor);
+  });
+
+  const resposta = await fetch(url, {
+    headers: { "X-API-Key": TABELAS_API_KEY }
+  });
+
+  if (!resposta.ok) {
+    throw new Error(`Resposta ${resposta.status}`);
+  }
+
+  return resposta.json();
+}
+
+function preencherSelect(selectEl, valores) {
   const primeiraOpcao = selectEl.querySelector("option");
   selectEl.innerHTML = "";
   selectEl.appendChild(primeiraOpcao);
 
-  Array.from(new Set(valores.filter(Boolean))).sort().forEach((valor) => {
+  valores.forEach((valor) => {
     const opcao = document.createElement("option");
     opcao.value = valor;
     opcao.textContent = valor;
     selectEl.appendChild(opcao);
   });
+}
 
-  selectEl.value = valorAtual;
+async function carregarFiltros() {
+  try {
+    const dados = await chamarApi({ acao: "filtros" });
+    preencherSelect(filtroModulo, dados.modulos || []);
+    preencherSelect(filtroTipo, dados.tipos || []);
+  } catch (erro) {
+    console.error("Erro ao carregar filtros:", erro);
+  }
 }
 
 function criarCard(tabela) {
@@ -57,86 +77,66 @@ function criarCard(tabela) {
   return card;
 }
 
-function tabelaCorresponde(tabela, termos) {
-  const nome = normalizar(tabela.tabela);
-  const descricao = normalizar(tabela.descricao);
-  return termos.every((termo) => nome.includes(termo) || descricao.includes(termo));
-}
-
-function calcularRelevancia(tabela, termos) {
-  const nome = normalizar(tabela.tabela);
-  return termos.every((termo) => nome.includes(termo)) ? 0 : 1;
-}
-
-function renderizarLista() {
-  const termo = normalizar(buscaInput.value.trim());
-  const termos = termo.split(/\s+/).filter(Boolean);
-  const modulo = filtroModulo.value;
-  const tipo = filtroTipo.value;
-
-  let filtradas = tabelasTodas.filter((tabela) => {
-    if (modulo && tabela.modulo !== modulo) return false;
-    if (tipo && tabela.tipo !== tipo) return false;
-    if (termos.length > 0 && !tabelaCorresponde(tabela, termos)) return false;
-    return true;
-  });
-
-  filtradas = filtradas
-    .map((tabela) => ({ tabela, relevancia: calcularRelevancia(tabela, termos) }))
-    .sort((a, b) => a.relevancia - b.relevancia || a.tabela.tabela.localeCompare(b.tabela.tabela))
-    .map((item) => item.tabela);
-
+function renderizarResultados(tabelas) {
   grade.innerHTML = "";
 
-  if (filtradas.length === 0) {
-    vazioEl.textContent = tabelasTodas.length === 0
-      ? "Nenhuma tabela carregada."
-      : "Nenhuma tabela encontrada para essa busca.";
+  if (tabelas.length === 0) {
     vazioEl.hidden = false;
   } else {
     vazioEl.hidden = true;
-    filtradas.forEach((tabela) => grade.appendChild(criarCard(tabela)));
+    tabelas.forEach((tabela) => grade.appendChild(criarCard(tabela)));
   }
 }
 
-async function carregarTabelas() {
-  if (!TABELAS_API_URL || !TABELAS_API_KEY) {
-    contagemEl.textContent = "";
-    vazioEl.textContent = "Endpoint de busca de tabelas ainda não configurado (public/js/config/tabelas-api-config.js).";
-    vazioEl.hidden = false;
+function mostrarMensagem(mensagem) {
+  grade.innerHTML = "";
+  vazioEl.textContent = mensagem;
+  vazioEl.hidden = false;
+}
+
+async function buscar() {
+  if (!configurada()) {
+    mostrarMensagem("Endpoint de busca de tabelas ainda não configurado (public/js/config/tabelas-api-config.js).");
     return;
   }
 
-  contagemEl.textContent = "Carregando tabelas...";
+  const termoBusca = buscaInput.value.trim();
+  const modulo = filtroModulo.value;
+  const tipo = filtroTipo.value;
+
+  const termosValidos = termoBusca.split(/\s+/).filter((t) => t.length >= TAMANHO_MINIMO_TERMO);
+
+  if (termoBusca === "" && !modulo && !tipo) {
+    mostrarMensagem("Digite algo ou selecione um filtro para buscar.");
+    contagemEl.textContent = "";
+    return;
+  }
+
+  if (termoBusca !== "" && termosValidos.length === 0 && !modulo && !tipo) {
+    mostrarMensagem(`Digite termos com pelo menos ${TAMANHO_MINIMO_TERMO} letras.`);
+    contagemEl.textContent = "";
+    return;
+  }
+
+  contagemEl.textContent = "Buscando...";
 
   try {
-    const resposta = await fetch(TABELAS_API_URL, {
-      headers: { "X-API-Key": TABELAS_API_KEY }
-    });
-
-    if (!resposta.ok) {
-      throw new Error(`Resposta ${resposta.status}`);
-    }
-
-    const dados = await resposta.json();
-    tabelasTodas = Array.isArray(dados) ? dados : [];
-
-    contagemEl.textContent = `${tabelasTodas.length.toLocaleString("pt-BR")} tabelas encontradas no banco`;
-
-    preencherFiltroDinamico(filtroModulo, tabelasTodas.map((t) => t.modulo));
-    preencherFiltroDinamico(filtroTipo, tabelasTodas.map((t) => t.tipo));
-
-    renderizarLista();
+    const tabelas = await chamarApi({ acao: "buscar", q: termoBusca, modulo, tipo });
+    contagemEl.textContent = `${tabelas.length.toLocaleString("pt-BR")} tabelas encontradas`;
+    renderizarResultados(tabelas);
   } catch (erro) {
-    console.error("Erro ao carregar tabelas:", erro);
+    console.error("Erro ao buscar tabelas:", erro);
     contagemEl.textContent = "";
-    vazioEl.textContent = "Não foi possível carregar as tabelas. Verifique a conexão com o servidor.";
-    vazioEl.hidden = false;
+    mostrarMensagem("Não foi possível buscar as tabelas. Verifique a conexão com o servidor.");
   }
 }
 
-buscaInput.addEventListener("input", renderizarLista);
-filtroModulo.addEventListener("change", renderizarLista);
-filtroTipo.addEventListener("change", renderizarLista);
+buscaInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") buscar();
+});
 
-carregarTabelas();
+filtroModulo.addEventListener("change", buscar);
+filtroTipo.addEventListener("change", buscar);
+
+carregarFiltros();
+mostrarMensagem("Digite algo ou selecione um filtro para buscar.");
