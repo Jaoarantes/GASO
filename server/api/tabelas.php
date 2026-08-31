@@ -39,10 +39,10 @@ carregar_dotenv(__DIR__ . '/.env');
 
 header('Content-Type: application/json; charset=utf-8');
 
-$allowedOrigin = getenv('TABELAS_ALLOWED_ORIGIN') ?: '';
-if ($allowedOrigin !== '') {
-    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-}
+// CORS aberto: a proteção de acesso é só a API key (ver abaixo), não o
+// domínio de origem — permite chamar o endpoint tanto do site em produção
+// quanto de um ambiente local (Live Server, etc) sem configuração extra.
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: X-API-Key');
 
