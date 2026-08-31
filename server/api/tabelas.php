@@ -212,16 +212,44 @@ if ($acao === 'buscar') {
         exit;
     }
 
+    // Cada ocorrência do termo na query usa seu próprio parâmetro nomeado —
+    // o driver ODBC do Oracle não suporta reutilizar o mesmo parâmetro
+    // nomeado mais de uma vez na mesma query preparada.
     $condicoes = [];
     $pontuacao = [];
     $params = [];
 
     foreach ($termos as $i => $termoOriginal) {
-        $paramNome = ":t{$i}";
-        $params[$paramNome] = '%' . strtoupper($termoOriginal) . '%';
-        $condicoes[] = "(UPPER(tabela) LIKE {$paramNome} OR UPPER(NVL(descricao, ' ')) LIKE {$paramNome})";
-        $pontuacao[] = "(CASE WHEN UPPER(tabela) LIKE {$paramNome} THEN 2 ELSE 0 END)";
-        $pontuacao[] = "(CASE WHEN UPPER(NVL(descricao, ' ')) LIKE {$paramNome} THEN 1 ELSE 0 END)";
+        $valor = '%' . strtoupper($termoOriginal) . '%';
+
+        $pCond  = ":t{$i}cond";
+        $pCondD = ":t{$i}condd";
+        $pPontN = ":t{$i}pn";
+        $pPontD = ":t{$i}pd";
+
+        $params[$pCond]  = $valor;
+        $params[$pCondD] = $valor;
+        $params[$pPontN] = $valor;
+        $params[$pPontD] = $valor;
+
+        $condicoes[] = "(UPPER(tabela) LIKE {$pCond} OR UPPER(NVL(descricao, ' ')) LIKE {$pCondD})";
+        $pontuacao[] = "(CASE WHEN UPPER(tabela) LIKE {$pPontN} THEN 2 ELSE 0 END)";
+        $pontuacao[] = "(CASE WHEN UPPER(NVL(descricao, ' ')) LIKE {$pPontD} THEN 1 ELSE 0 END)";
+    }
+
+    // Bônus por correspondência do texto completo digitado contra o nome da
+    // tabela — sem isso, "pe_pedidos" pontua igual para PE_PEDIDOS (match
+    // exato) e AI_PE_PEDIDOS_WAKE (só contém a substring), empatando e caindo
+    // no desempate alfabético em vez de priorizar o match exato.
+    if ($termos !== []) {
+        $textoCompleto = strtoupper($termoBusca);
+        $params[':textoExato']    = $textoCompleto;
+        $params[':textoComeca']   = $textoCompleto . '%';
+        $params[':textoContem']   = '%' . $textoCompleto . '%';
+
+        $pontuacao[] = "(CASE WHEN UPPER(tabela) = :textoExato THEN 1000 ELSE 0 END)";
+        $pontuacao[] = "(CASE WHEN UPPER(tabela) LIKE :textoComeca THEN 500 ELSE 0 END)";
+        $pontuacao[] = "(CASE WHEN UPPER(tabela) LIKE :textoContem THEN 100 ELSE 0 END)";
     }
 
     $filtrosExtras = [];
