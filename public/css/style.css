@@ -2266,7 +2266,7 @@ select.publicacao-select {
 /* Painel de colunas (tela SQL) */
 
 .painel--tabela {
-  max-width: 820px;
+  max-width: 640px;
 }
 
 .painel__titulo-tabela {

@@ -129,16 +129,13 @@ const colunasCorpoEl = document.getElementById("colunas-tabela-corpo");
 
 function renderizarColunas(colunas) {
   if (colunas.length === 0) {
-    colunasCorpoEl.innerHTML = `<tr><td colspan="5" class="coluna-vazio">Nenhuma coluna comentada encontrada no Oracle pra essa tabela.</td></tr>`;
+    colunasCorpoEl.innerHTML = `<tr><td colspan="2" class="coluna-vazio">Nenhuma coluna comentada encontrada no Oracle pra essa tabela.</td></tr>`;
     return;
   }
 
   colunasCorpoEl.innerHTML = colunas.map((c) => `
     <tr>
       <td class="coluna-nome">${c.coluna}</td>
-      <td class="coluna-tipo">—</td>
-      <td class="coluna-obrig">—</td>
-      <td>—</td>
       <td class="coluna-descricao">${c.descricao || "Sem descrição cadastrada no Oracle."}</td>
     </tr>
   `).join("");
@@ -154,14 +151,14 @@ async function abrirPainel(tabela) {
   painelOverlay.hidden = false;
   document.body.style.overflow = "hidden";
 
-  colunasCorpoEl.innerHTML = `<tr><td colspan="5" class="coluna-vazio">Carregando colunas...</td></tr>`;
+  colunasCorpoEl.innerHTML = `<tr><td colspan="2" class="coluna-vazio">Carregando colunas...</td></tr>`;
 
   try {
     const colunas = await chamarApi({ acao: "colunas", tabela: tabela.tabela });
     renderizarColunas(colunas);
   } catch (erro) {
     console.error("Erro ao buscar colunas:", erro);
-    colunasCorpoEl.innerHTML = `<tr><td colspan="5" class="coluna-vazio">Não foi possível buscar as colunas dessa tabela.</td></tr>`;
+    colunasCorpoEl.innerHTML = `<tr><td colspan="2" class="coluna-vazio">Não foi possível buscar as colunas dessa tabela.</td></tr>`;
   }
 }
 
