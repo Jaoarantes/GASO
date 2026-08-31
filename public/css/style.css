@@ -2356,3 +2356,170 @@ select.publicacao-select {
   color: var(--cor-descricao-card);
   min-width: 200px;
 }
+
+/* Novo SQL — editor livre */
+
+.sql-editor-secao {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: calc(100vh - 140px);
+}
+
+.sql-editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sql-editor-toolbar__btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--cor-borda);
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto);
+  border-radius: var(--raio-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sql-editor-toolbar__btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sql-editor-toolbar__btn:hover {
+  background-color: var(--cor-fundo);
+}
+
+.sql-editor-toolbar__btn--principal {
+  border: none;
+  background-color: var(--cor-primaria);
+  color: #ffffff;
+}
+
+.sql-editor-toolbar__btn--principal:hover {
+  background-color: var(--cor-primaria-forte);
+}
+
+.sql-editor-wrapper {
+  flex: 1;
+  min-height: 200px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  overflow: hidden;
+}
+
+.sql-editor-wrapper .CodeMirror {
+  height: 100%;
+  font-size: 13px;
+}
+
+.sql-resultado {
+  flex-shrink: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  padding: 16px;
+  background-color: var(--cor-superficie);
+}
+
+.sql-resultado-vazio,
+.sql-resultado-status {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.sql-resultado-erro {
+  font-size: 13px;
+  color: var(--cor-erro);
+}
+
+/* Modal de confirmação */
+
+.painel-overlay--centralizado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirmar-modal {
+  background-color: var(--cor-superficie);
+  border-radius: var(--raio-lg);
+  padding: 24px;
+  max-width: 420px;
+  width: 90%;
+  margin: auto;
+  box-shadow: var(--sombra-card);
+}
+
+.confirmar-modal__titulo {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin-bottom: 10px;
+}
+
+.confirmar-modal__mensagem {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.confirmar-modal__acoes {
+  display: flex;
+  gap: 10px;
+}
+
+.confirmar-modal__acoes .publicacao-btn {
+  margin-bottom: 0;
+}
+
+/* Painel "SQL Script" */
+
+.script-painel-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.script-painel-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  background-color: var(--cor-superficie);
+  padding: 12px 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.script-painel-item:hover {
+  border-color: var(--cor-texto-fraco);
+  box-shadow: var(--sombra-card);
+}
+
+.script-painel-item__titulo {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.script-painel-item__descricao {
+  font-size: 12px;
+  color: var(--cor-descricao-card);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
