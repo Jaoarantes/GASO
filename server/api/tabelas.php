@@ -173,4 +173,12 @@ try {
     responder_erro(500, 'Erro ao consultar o banco de dados.');
 }
 
+// O driver ODBC do Oracle devolve nomes de coluna em maiúsculo
+// independentemente do alias usado no SQL — normaliza para minúsculo antes
+// de responder, já que o frontend espera { tabela, modulo, tipo, descricao }.
+$linhas = array_map(
+    fn(array $linha): array => array_change_key_case($linha, CASE_LOWER),
+    $linhas
+);
+
 echo json_encode($linhas, JSON_UNESCAPED_UNICODE);
