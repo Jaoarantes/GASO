@@ -88,12 +88,17 @@
       </div>
 
       <div class="painel__corpo" id="painel-corpo">
+        <div class="busca-barra colunas-busca-barra">
+          <svg class="busca-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input class="busca-input" type="text" id="coluna-busca-input" placeholder="Busque por coluna ou descrição...">
+        </div>
+
         <div class="colunas-tabela-wrapper">
           <table class="colunas-tabela">
             <thead>
               <tr>
-                <th>Coluna</th>
-                <th>Descrição de negócio</th>
+                <th class="coluna-th-ordenavel" data-campo="coluna">Coluna <span class="coluna-ordem-seta" data-campo="coluna"></span></th>
+                <th class="coluna-th-ordenavel" data-campo="descricao">Descrição de negócio <span class="coluna-ordem-seta" data-campo="descricao"></span></th>
               </tr>
             </thead>
             <tbody id="colunas-tabela-corpo"></tbody>

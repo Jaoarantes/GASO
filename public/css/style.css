@@ -2287,6 +2287,11 @@ select.publicacao-select {
   font-size: 13px;
 }
 
+.colunas-busca-barra {
+  max-width: none;
+  margin-bottom: 14px;
+}
+
 .colunas-tabela thead th {
   text-align: left;
   white-space: nowrap;
@@ -2298,6 +2303,21 @@ select.publicacao-select {
   padding: 10px 14px;
   background-color: var(--cor-bloco-meta);
   border-bottom: 1px solid var(--cor-divisor);
+}
+
+.coluna-th-ordenavel {
+  cursor: pointer;
+  user-select: none;
+}
+
+.coluna-th-ordenavel:hover {
+  color: var(--cor-texto);
+}
+
+.coluna-ordem-seta {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--cor-primaria);
 }
 
 .colunas-tabela tbody td {

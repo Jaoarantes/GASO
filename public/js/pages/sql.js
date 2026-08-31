@@ -126,20 +126,77 @@ const painelTipoEl = document.getElementById("painel-tipo");
 const painelTabelaNomeEl = document.getElementById("painel-tabela-nome");
 const painelFecharBtn = document.getElementById("painel-fechar");
 const colunasCorpoEl = document.getElementById("colunas-tabela-corpo");
+const colunaBuscaInput = document.getElementById("coluna-busca-input");
+const colunaCabecalhos = document.querySelectorAll(".coluna-th-ordenavel");
 
-function renderizarColunas(colunas) {
-  if (colunas.length === 0) {
-    colunasCorpoEl.innerHTML = `<tr><td colspan="2" class="coluna-vazio">Nenhuma coluna comentada encontrada no Oracle pra essa tabela.</td></tr>`;
+let colunasAtuais = [];
+let colunaBuscaTermo = "";
+let colunaOrdemCampo = null;
+let colunaOrdemAsc = true;
+
+function colunasFiltradasOrdenadas() {
+  let lista = colunasAtuais;
+
+  if (colunaBuscaTermo) {
+    const termo = normalizarTexto(colunaBuscaTermo);
+    lista = lista.filter((c) =>
+      normalizarTexto(c.coluna).includes(termo) || normalizarTexto(c.descricao).includes(termo)
+    );
+  }
+
+  if (colunaOrdemCampo) {
+    lista = [...lista].sort((a, b) => {
+      const comparacao = normalizarTexto(a[colunaOrdemCampo]).localeCompare(normalizarTexto(b[colunaOrdemCampo]));
+      return colunaOrdemAsc ? comparacao : -comparacao;
+    });
+  }
+
+  return lista;
+}
+
+function atualizarSetasOrdenacao() {
+  document.querySelectorAll(".coluna-ordem-seta").forEach((seta) => {
+    seta.textContent = seta.dataset.campo === colunaOrdemCampo ? (colunaOrdemAsc ? "↑" : "↓") : "";
+  });
+}
+
+function renderizarColunas() {
+  const lista = colunasFiltradasOrdenadas();
+
+  if (lista.length === 0) {
+    const mensagem = colunasAtuais.length === 0
+      ? "Nenhuma coluna comentada encontrada no Oracle pra essa tabela."
+      : "Nenhuma coluna encontrada pra essa busca.";
+    colunasCorpoEl.innerHTML = `<tr><td colspan="2" class="coluna-vazio">${mensagem}</td></tr>`;
     return;
   }
 
-  colunasCorpoEl.innerHTML = colunas.map((c) => `
+  colunasCorpoEl.innerHTML = lista.map((c) => `
     <tr>
       <td class="coluna-nome">${c.coluna}</td>
       <td class="coluna-descricao">${c.descricao || "Sem descrição cadastrada no Oracle."}</td>
     </tr>
   `).join("");
 }
+
+colunaBuscaInput.addEventListener("input", () => {
+  colunaBuscaTermo = colunaBuscaInput.value.trim();
+  renderizarColunas();
+});
+
+colunaCabecalhos.forEach((th) => {
+  th.addEventListener("click", () => {
+    const campo = th.dataset.campo;
+    if (colunaOrdemCampo === campo) {
+      colunaOrdemAsc = !colunaOrdemAsc;
+    } else {
+      colunaOrdemCampo = campo;
+      colunaOrdemAsc = true;
+    }
+    atualizarSetasOrdenacao();
+    renderizarColunas();
+  });
+});
 
 async function abrirPainel(tabela) {
   const tipoInfo = obterTipoTabelaInfo(tabela.tipo);
@@ -148,14 +205,21 @@ async function abrirPainel(tabela) {
   painelTipoEl.style.color = tipoInfo.cor;
   painelTabelaNomeEl.textContent = tabela.tabela || "";
 
+  colunaBuscaTermo = "";
+  colunaBuscaInput.value = "";
+  colunaOrdemCampo = null;
+  colunaOrdemAsc = true;
+  atualizarSetasOrdenacao();
+
   painelOverlay.hidden = false;
   document.body.style.overflow = "hidden";
 
+  colunasAtuais = [];
   colunasCorpoEl.innerHTML = `<tr><td colspan="2" class="coluna-vazio">Carregando colunas...</td></tr>`;
 
   try {
-    const colunas = await chamarApi({ acao: "colunas", tabela: tabela.tabela });
-    renderizarColunas(colunas);
+    colunasAtuais = await chamarApi({ acao: "colunas", tabela: tabela.tabela });
+    renderizarColunas();
   } catch (erro) {
     console.error("Erro ao buscar colunas:", erro);
     colunasCorpoEl.innerHTML = `<tr><td colspan="2" class="coluna-vazio">Não foi possível buscar as colunas dessa tabela.</td></tr>`;
