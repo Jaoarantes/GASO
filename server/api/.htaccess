@@ -1,0 +1,11 @@
+# Bloqueia acesso direto ao .env via HTTP — as credenciais só devem ser
+# lidas pelo PHP (tabelas.php), nunca servidas como arquivo estático.
+<FilesMatch "^\.env">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

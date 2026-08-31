@@ -1,4 +1,4 @@
-import { supabase } from "./supabase-config.js";
+import { supabase } from "../config/supabase-config.js";
 
 const tipoCards = document.querySelectorAll(".tipo-card");
 const registroVazio = document.getElementById("registro-vazio");

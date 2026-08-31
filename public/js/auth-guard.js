@@ -1,4 +1,4 @@
-import { supabase } from "./supabase-config.js";
+import { supabase } from "./config/supabase-config.js";
 
 const { data: { session } } = await supabase.auth.getSession();
 
