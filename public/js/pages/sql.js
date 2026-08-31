@@ -115,8 +115,66 @@ function criarCard(tabela) {
     <div class="solucao-card__tags">${tagsHtml}</div>
   `;
 
+  card.addEventListener("click", () => abrirPainel(tabela));
+
   return card;
 }
+
+const painelOverlay = document.getElementById("painel-overlay");
+const painelEl = document.getElementById("painel");
+const painelTipoEl = document.getElementById("painel-tipo");
+const painelTabelaNomeEl = document.getElementById("painel-tabela-nome");
+const painelFecharBtn = document.getElementById("painel-fechar");
+const colunasCorpoEl = document.getElementById("colunas-tabela-corpo");
+
+function renderizarColunas(colunas) {
+  if (colunas.length === 0) {
+    colunasCorpoEl.innerHTML = `<tr><td colspan="5" class="coluna-vazio">Nenhuma coluna comentada encontrada no Oracle pra essa tabela.</td></tr>`;
+    return;
+  }
+
+  colunasCorpoEl.innerHTML = colunas.map((c) => `
+    <tr>
+      <td class="coluna-nome">${c.coluna}</td>
+      <td class="coluna-tipo">—</td>
+      <td class="coluna-obrig">—</td>
+      <td>—</td>
+      <td class="coluna-descricao">${c.descricao || "Sem descrição cadastrada no Oracle."}</td>
+    </tr>
+  `).join("");
+}
+
+async function abrirPainel(tabela) {
+  const tipoInfo = obterTipoTabelaInfo(tabela.tipo);
+  painelTipoEl.textContent = tabela.tipo || "";
+  painelTipoEl.style.backgroundColor = tipoInfo.fundo;
+  painelTipoEl.style.color = tipoInfo.cor;
+  painelTabelaNomeEl.textContent = tabela.tabela || "";
+
+  painelOverlay.hidden = false;
+  document.body.style.overflow = "hidden";
+
+  colunasCorpoEl.innerHTML = `<tr><td colspan="5" class="coluna-vazio">Carregando colunas...</td></tr>`;
+
+  try {
+    const colunas = await chamarApi({ acao: "colunas", tabela: tabela.tabela });
+    renderizarColunas(colunas);
+  } catch (erro) {
+    console.error("Erro ao buscar colunas:", erro);
+    colunasCorpoEl.innerHTML = `<tr><td colspan="5" class="coluna-vazio">Não foi possível buscar as colunas dessa tabela.</td></tr>`;
+  }
+}
+
+function fecharPainel() {
+  painelOverlay.hidden = true;
+  document.body.style.overflow = "";
+}
+
+painelFecharBtn.addEventListener("click", fecharPainel);
+
+painelOverlay.addEventListener("click", (event) => {
+  if (event.target === painelOverlay) fecharPainel();
+});
 
 function renderizarResultados(tabelas) {
   grade.innerHTML = "";

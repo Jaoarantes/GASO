@@ -5,7 +5,7 @@
 // conexão Oracle de server/conecta.php — não inclui MySQL Locaweb/financeiro,
 // que não têm relação com esta tela.
 //
-// Duas ações via ?acao=:
+// Três ações via ?acao=:
 //   filtros — devolve os valores distintos de módulo/tipo (pros <select>).
 //   buscar  — recebe q/modulo/tipo/modo:
 //             modo=tabela (busca por tabela) — nome exato (UPPER(tabela) = q),
@@ -13,6 +13,9 @@
 //             modo=termos (padrão, busca por termos) — pontua cada tabela
 //               pelos termos digitados (nome pesa mais que descrição) e
 //               devolve só as que pontuam, da mais relevante pra menos.
+//   colunas — recebe tabela (nome exato) e devolve table_name/column_name/
+//             comments de ALL_COL_COMMENTS pra essa tabela (painel de
+//             detalhe, aberto ao clicar num card de resultado).
 declare(strict_types=1);
 
 // ── Carrega variáveis de server/api/.env (sem depender de SetEnv/Composer,
@@ -338,4 +341,28 @@ if ($acao === 'buscar') {
     exit;
 }
 
-responder_erro(400, 'Parâmetro acao inválido. Use acao=filtros ou acao=buscar.');
+if ($acao === 'colunas') {
+    $tabela = trim((string)($_GET['tabela'] ?? ''));
+    if ($tabela === '') {
+        responder_erro(400, 'Parâmetro tabela obrigatório.');
+    }
+
+    $sql = 'SELECT table_name AS tabela, column_name AS coluna, comments AS descricao'
+         . ' FROM ALL_COL_COMMENTS'
+         . ' WHERE owner = USER AND table_name = :tabela'
+         . ' ORDER BY column_name';
+
+    try {
+        $pdo = pdo_oracle();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':tabela' => strtoupper($tabela)]);
+        $linhas = normalizar_lista($stmt->fetchAll());
+    } catch (Throwable $e) {
+        responder_erro(500, 'Erro ao consultar o banco de dados.');
+    }
+
+    echo json_encode($linhas, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+responder_erro(400, 'Parâmetro acao inválido. Use acao=filtros, acao=buscar ou acao=colunas.');
