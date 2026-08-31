@@ -2380,7 +2380,8 @@ select.publicacao-select {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: calc(100vh - 140px);
+  padding: 24px 20px;
+  height: calc(100vh - var(--altura-topo) - 48px);
 }
 
 .sql-editor-toolbar {
@@ -2475,13 +2476,6 @@ select.publicacao-select {
   box-shadow: var(--sombra-card);
 }
 
-.confirmar-modal__titulo {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--cor-texto);
-  margin-bottom: 10px;
-}
-
 .confirmar-modal__mensagem {
   font-size: 13px;
   color: var(--cor-texto-suave);
@@ -2505,12 +2499,8 @@ select.publicacao-select {
   margin-bottom: 20px;
 }
 
-.confirmar-modal__acoes {
-  display: flex;
-  gap: 10px;
-}
-
 .confirmar-modal__acoes .publicacao-btn {
+  width: auto;
   margin-bottom: 0;
 }
 
@@ -2555,4 +2545,50 @@ select.publicacao-select {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+/* CodeMirror no tema escuro (editor de codigo compartilhado por Nova
+   Solucao e Novo SQL) — a biblioteca so vem com o tema claro por padrao. */
+
+[data-theme="dark"] .CodeMirror {
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto);
+}
+
+[data-theme="dark"] .CodeMirror-gutters {
+  background-color: var(--cor-bloco-meta);
+  border-right: 1px solid var(--cor-divisor);
+}
+
+[data-theme="dark"] .CodeMirror-linenumber {
+  color: var(--cor-texto-fraco);
+}
+
+[data-theme="dark"] .CodeMirror-cursor {
+  border-left-color: var(--cor-texto);
+}
+
+[data-theme="dark"] .CodeMirror-selected,
+[data-theme="dark"] .CodeMirror-focused .CodeMirror-selected {
+  background-color: var(--cor-item-ativo);
+}
+
+[data-theme="dark"] .cm-keyword {
+  color: var(--tabela-cadastro-cor);
+}
+
+[data-theme="dark"] .cm-string {
+  color: var(--tipo-procedimento-cor);
+}
+
+[data-theme="dark"] .cm-number {
+  color: var(--tabela-sistema-cor);
+}
+
+[data-theme="dark"] .cm-comment {
+  color: var(--cor-texto-fraco);
+}
+
+[data-theme="dark"] .cm-operator {
+  color: var(--cor-texto-suave);
 }
