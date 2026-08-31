@@ -2272,7 +2272,6 @@ select.publicacao-select {
 .painel__titulo-tabela {
   font-size: 16px;
   font-weight: 700;
-  font-family: "Courier New", Courier, monospace;
   color: var(--cor-texto);
 }
 
@@ -2316,14 +2315,12 @@ select.publicacao-select {
 }
 
 .coluna-nome {
-  font-family: "Courier New", Courier, monospace;
   font-weight: 700;
   color: var(--cor-texto);
   white-space: nowrap;
 }
 
 .coluna-tipo {
-  font-family: "Courier New", Courier, monospace;
   color: var(--cor-texto-fraco);
   white-space: nowrap;
 }
