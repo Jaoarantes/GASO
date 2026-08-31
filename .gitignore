@@ -4,3 +4,13 @@ node_modules/
 .env.local
 .DS_Store
 Thumbs.db
+
+# Credenciais de banco de dados (nao versionar em repo publico)
+server/conecta.php
+server/**/*.env
+!server/**/*.env.example
+**/conecta.php
+
+# Chave da API de tabelas (nao versionar em repo publico)
+public/js/config/tabelas-api-config.js
+!public/js/config/tabelas-api-config.example.js
