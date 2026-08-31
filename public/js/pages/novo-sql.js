@@ -40,18 +40,32 @@ function mostrarTabelaResultado(colunas, linhas) {
   const wrapper = document.createElement("div");
   wrapper.className = "colunas-tabela-wrapper";
 
-  const cabecalho = colunas.map((c) => `<th>${c}</th>`).join("");
-  const corpo = linhas.map((linha) => {
-    const celulas = colunas.map((c) => `<td>${linha[c] ?? ""}</td>`).join("");
-    return `<tr>${celulas}</tr>`;
-  }).join("");
+  const tabela = document.createElement("table");
+  tabela.className = "colunas-tabela";
 
-  wrapper.innerHTML = `
-    <table class="colunas-tabela">
-      <thead><tr>${cabecalho}</tr></thead>
-      <tbody>${corpo}</tbody>
-    </table>
-  `;
+  const thead = document.createElement("thead");
+  const trCabecalho = document.createElement("tr");
+  colunas.forEach((c) => {
+    const th = document.createElement("th");
+    th.textContent = c;
+    trCabecalho.appendChild(th);
+  });
+  thead.appendChild(trCabecalho);
+
+  const tbody = document.createElement("tbody");
+  linhas.forEach((linha) => {
+    const tr = document.createElement("tr");
+    colunas.forEach((c) => {
+      const td = document.createElement("td");
+      td.textContent = linha[c] ?? "";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  tabela.appendChild(thead);
+  tabela.appendChild(tbody);
+  wrapper.appendChild(tabela);
 
   resultadoEl.appendChild(wrapper);
 }
@@ -75,15 +89,9 @@ async function executarNoBackend(sql) {
   return dados;
 }
 
-async function executar() {
+async function executar(sql) {
   if (!configurada()) {
     mostrarMensagemResultado("Endpoint de busca de tabelas ainda não configurado (public/js/config/tabelas-api-config.js).", "erro");
-    return;
-  }
-
-  const sql = editor.getValue().trim();
-  if (!sql) {
-    mostrarMensagemResultado("Escreva um comando SQL antes de executar.", "erro");
     return;
   }
 
@@ -109,20 +117,26 @@ async function executar() {
 // ── Confirmação para comandos não-SELECT ────────────────────────────────
 const confirmarOverlay = document.getElementById("confirmar-overlay");
 const confirmarMensagemEl = document.getElementById("confirmar-mensagem");
+const confirmarPreviewEl = document.getElementById("confirmar-preview");
 const confirmarCancelarBtn = document.getElementById("confirmar-cancelar-btn");
 const confirmarExecutarBtn = document.getElementById("confirmar-executar-btn");
+
+let sqlPendente = null;
 
 function ehSelect(sql) {
   return /^\s*select\b/i.test(sql);
 }
 
-function abrirConfirmacao() {
+function abrirConfirmacao(sql) {
+  sqlPendente = sql;
   confirmarMensagemEl.textContent = "Isso vai executar este comando no banco de produção. Essa ação não pode ser desfeita.";
+  confirmarPreviewEl.textContent = sql;
   confirmarOverlay.hidden = false;
 }
 
 function fecharConfirmacao() {
   confirmarOverlay.hidden = true;
+  sqlPendente = null;
 }
 
 confirmarCancelarBtn.addEventListener("click", fecharConfirmacao);
@@ -130,8 +144,9 @@ confirmarOverlay.addEventListener("click", (event) => {
   if (event.target === confirmarOverlay) fecharConfirmacao();
 });
 confirmarExecutarBtn.addEventListener("click", () => {
+  const sql = sqlPendente;
   fecharConfirmacao();
-  executar();
+  if (sql) executar(sql);
 });
 
 executarBtn.addEventListener("click", () => {
@@ -141,9 +156,9 @@ executarBtn.addEventListener("click", () => {
     return;
   }
   if (ehSelect(sql)) {
-    executar();
+    executar(sql);
   } else {
-    abrirConfirmacao();
+    abrirConfirmacao(sql);
   }
 });
 
@@ -167,10 +182,18 @@ function renderizarScripts(scripts) {
     const item = document.createElement("button");
     item.type = "button";
     item.className = "script-painel-item";
-    item.innerHTML = `
-      <span class="script-painel-item__titulo">${script.titulo || "Sem título"}</span>
-      <span class="script-painel-item__descricao">${script.erro || ""}</span>
-    `;
+
+    const titulo = document.createElement("span");
+    titulo.className = "script-painel-item__titulo";
+    titulo.textContent = script.titulo || "Sem título";
+
+    const descricao = document.createElement("span");
+    descricao.className = "script-painel-item__descricao";
+    descricao.textContent = script.erro || "";
+
+    item.appendChild(titulo);
+    item.appendChild(descricao);
+
     item.addEventListener("click", () => {
       editor.setValue(script.codigo || "");
       fecharScriptPainel();

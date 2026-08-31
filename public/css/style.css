@@ -2472,6 +2472,22 @@ select.publicacao-select {
   margin-bottom: 20px;
 }
 
+.confirmar-modal__preview {
+  background-color: var(--cor-bloco-meta);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  padding: 10px 12px;
+  max-height: 160px;
+  overflow-y: auto;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cor-texto);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 20px;
+}
+
 .confirmar-modal__acoes {
   display: flex;
   gap: 10px;
