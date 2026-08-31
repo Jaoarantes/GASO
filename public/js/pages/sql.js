@@ -62,12 +62,26 @@ function preencherSelect(selectEl, valores) {
   });
 }
 
-const TIPO_TABELA_INFO = {
-  "Cadastro/Base": { cor: "var(--tabela-cadastro-cor)", fundo: "var(--tabela-cadastro-fundo)" },
-  "Trabalho/Temporária": { cor: "var(--tabela-trabalho-cor)", fundo: "var(--tabela-trabalho-fundo)" },
-  "Sistema (Oracle/APEX)": { cor: "var(--tabela-sistema-cor)", fundo: "var(--tabela-sistema-fundo)" },
-  "Diversos/Não padronizado": { cor: "var(--tabela-diversos-cor)", fundo: "var(--tabela-diversos-fundo)" }
-};
+function normalizarTexto(texto) {
+  return (texto || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toUpperCase()
+    .trim();
+}
+
+const TIPO_TABELA_INFO = [
+  { chave: "CADASTRO/BASE", cor: "var(--tabela-cadastro-cor)", fundo: "var(--tabela-cadastro-fundo)" },
+  { chave: "TRABALHO/TEMPORARIA", cor: "var(--tabela-trabalho-cor)", fundo: "var(--tabela-trabalho-fundo)" },
+  { chave: "SISTEMA (ORACLE/APEX)", cor: "var(--tabela-sistema-cor)", fundo: "var(--tabela-sistema-fundo)" },
+  { chave: "DIVERSOS/NAO PADRONIZADO", cor: "var(--tabela-diversos-cor)", fundo: "var(--tabela-diversos-fundo)" }
+];
+
+function obterTipoTabelaInfo(tipo) {
+  const chaveNormalizada = normalizarTexto(tipo);
+  const encontrado = TIPO_TABELA_INFO.find((item) => item.chave === chaveNormalizada);
+  return encontrado || { cor: "var(--cor-texto-suave)", fundo: "var(--cor-bloco-meta)" };
+}
 
 async function carregarFiltros() {
   try {
@@ -83,7 +97,7 @@ function criarCard(tabela) {
   const card = document.createElement("div");
   card.className = "solucao-card";
 
-  const tipoInfo = TIPO_TABELA_INFO[tabela.tipo] || { cor: "var(--cor-texto-suave)", fundo: "var(--cor-bloco-meta)" };
+  const tipoInfo = obterTipoTabelaInfo(tabela.tipo);
 
   const tagsHtml = [tabela.modulo, tabela.tipo]
     .filter(Boolean)

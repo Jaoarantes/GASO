@@ -43,8 +43,8 @@
   --tabela-trabalho-fundo: #dcf5f2;
   --tabela-sistema-cor: #92400e;
   --tabela-sistema-fundo: #fbe9d8;
-  --tabela-diversos-cor: #db2777;
-  --tabela-diversos-fundo: #fce7f1;
+  --tabela-diversos-cor: #c2410c;
+  --tabela-diversos-fundo: #fde4d3;
 }
 
 [data-theme="dark"] {
@@ -84,8 +84,8 @@
   --tabela-trabalho-fundo: rgba(94, 234, 212, 0.14);
   --tabela-sistema-cor: #e3a465;
   --tabela-sistema-fundo: rgba(227, 164, 101, 0.14);
-  --tabela-diversos-cor: #f5a3c7;
-  --tabela-diversos-fundo: rgba(245, 163, 199, 0.14);
+  --tabela-diversos-cor: #fb9a67;
+  --tabela-diversos-fundo: rgba(251, 154, 103, 0.14);
 }
 
 * {
