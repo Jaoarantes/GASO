@@ -93,11 +93,58 @@ async function carregarFiltros() {
   }
 }
 
+const FAVORITAS_CHAVE = "tabelasFavoritas";
+
+function obterFavoritas() {
+  try {
+    return JSON.parse(localStorage.getItem(FAVORITAS_CHAVE) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function salvarFavoritas(lista) {
+  localStorage.setItem(FAVORITAS_CHAVE, JSON.stringify(lista));
+}
+
+function ehFavorita(nomeTabela) {
+  return obterFavoritas().some((t) => t.tabela === nomeTabela);
+}
+
+function alternarFavorita(tabela) {
+  const lista = obterFavoritas();
+  const indice = lista.findIndex((t) => t.tabela === tabela.tabela);
+  if (indice > -1) {
+    lista.splice(indice, 1);
+  } else {
+    lista.push(tabela);
+  }
+  salvarFavoritas(lista);
+  renderizarFavoritas();
+}
+
+const favoritasSecaoEl = document.getElementById("favoritas-secao");
+const favoritasGradeEl = document.getElementById("favoritas-grade");
+
+function renderizarFavoritas() {
+  const favoritas = obterFavoritas();
+  favoritasGradeEl.innerHTML = "";
+
+  if (favoritas.length === 0) {
+    favoritasSecaoEl.hidden = true;
+    return;
+  }
+
+  favoritasSecaoEl.hidden = false;
+  favoritas.forEach((tabela) => favoritasGradeEl.appendChild(criarCard(tabela)));
+}
+
 function criarCard(tabela) {
   const card = document.createElement("div");
   card.className = "solucao-card";
 
   const tipoInfo = obterTipoTabelaInfo(tabela.tipo);
+  const favoritada = ehFavorita(tabela.tabela);
 
   const tagsHtml = [tabela.modulo, tabela.tipo]
     .filter(Boolean)
@@ -107,6 +154,9 @@ function criarCard(tabela) {
   card.innerHTML = `
     <div class="solucao-card__topo">
       <span class="tipo-pill" style="background-color: ${tipoInfo.fundo}; color: ${tipoInfo.cor};">${tabela.tipo || "—"}</span>
+      <button class="favorita-btn${favoritada ? " favorita-btn--ativa" : ""}" type="button" aria-label="${favoritada ? "Remover dos favoritos" : "Adicionar aos favoritos"}">
+        <svg viewBox="0 0 24 24" fill="${favoritada ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+      </button>
     </div>
 
     <h3 class="solucao-card__titulo">${tabela.tabela || "Sem nome"}</h3>
@@ -114,6 +164,17 @@ function criarCard(tabela) {
 
     <div class="solucao-card__tags">${tagsHtml}</div>
   `;
+
+  card.querySelector(".favorita-btn").addEventListener("click", (event) => {
+    event.stopPropagation();
+    alternarFavorita(tabela);
+
+    const agoraFavoritada = ehFavorita(tabela.tabela);
+    const btn = event.currentTarget;
+    btn.classList.toggle("favorita-btn--ativa", agoraFavoritada);
+    btn.setAttribute("aria-label", agoraFavoritada ? "Remover dos favoritos" : "Adicionar aos favoritos");
+    btn.querySelector("svg").setAttribute("fill", agoraFavoritada ? "currentColor" : "none");
+  });
 
   card.addEventListener("click", () => abrirPainel(tabela));
 
@@ -317,4 +378,5 @@ filtroModulo.addEventListener("change", buscar);
 filtroTipo.addEventListener("change", buscar);
 
 carregarFiltros();
+renderizarFavoritas();
 mostrarMensagem("Digite algo ou selecione um filtro para buscar.");
