@@ -14,3 +14,7 @@ server/**/*.env
 # Chave da API de tabelas (nao versionar em repo publico)
 public/js/config/tabelas-api-config.js
 !public/js/config/tabelas-api-config.example.js
+
+# Planilhas soltas na pasta scripts (arquivos de trabalho, nao fazem parte do site)
+scripts/*.xlsx
+scripts/~$*
