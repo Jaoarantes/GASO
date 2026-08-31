@@ -371,12 +371,52 @@ body {
 .busca-linha {
   display: flex;
   align-items: center;
+  gap: 12px;
   margin-top: 16px;
   margin-bottom: 20px;
 }
 
 .busca-barra {
   flex: 1 1 auto;
+}
+
+.visualizacao-grupo {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  overflow: hidden;
+}
+
+.visualizacao-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-right: 1px solid var(--cor-borda);
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto-fraco);
+  cursor: pointer;
+}
+
+.visualizacao-btn:last-child {
+  border-right: none;
+}
+
+.visualizacao-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.visualizacao-btn:hover {
+  background-color: var(--cor-fundo);
+}
+
+.visualizacao-btn--ativo {
+  background-color: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
 }
 
 .ordenar-btn {
@@ -1610,6 +1650,10 @@ select.publicacao-select {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 18px;
+}
+
+.solucoes-grade--lista {
+  grid-template-columns: 1fr;
 }
 
 .solucao-card {

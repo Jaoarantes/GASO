@@ -18,8 +18,23 @@ const filtrosLimparBtn = document.getElementById("filtros-limpar");
 const ordenarBtn = document.getElementById("ordenar-btn");
 const ordenarTexto = document.getElementById("ordenar-texto");
 
+const visualizacaoGradeBtn = document.getElementById("visualizacao-grade");
+const visualizacaoListaBtn = document.getElementById("visualizacao-lista");
+
 let solucoesTodas = [];
 let ordenacao = "recentes";
+
+function aplicarVisualizacao(modo) {
+  localStorage.setItem("visualizacao", modo);
+  grade.classList.toggle("solucoes-grade--lista", modo === "lista");
+  visualizacaoGradeBtn.classList.toggle("visualizacao-btn--ativo", modo === "grade");
+  visualizacaoListaBtn.classList.toggle("visualizacao-btn--ativo", modo === "lista");
+}
+
+visualizacaoGradeBtn.addEventListener("click", () => aplicarVisualizacao("grade"));
+visualizacaoListaBtn.addEventListener("click", () => aplicarVisualizacao("lista"));
+
+aplicarVisualizacao(localStorage.getItem("visualizacao") || "grade");
 
 const TIPO_INFO = {
   erro: { label: "Erro", cor: "var(--tipo-erro-cor)", fundo: "var(--tipo-erro-fundo)" },
