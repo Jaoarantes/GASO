@@ -39,9 +39,27 @@
     </div>
   </nav>
 
-  <header class="header"></header>
+  <header class="header"><p class="text-header">SQL</p></header>
 
-  <main class="conteudo"></main>
+  <main class="conteudo">
+    <div class="busca-secao">
+      <div class="busca-linha">
+        <div class="busca-barra">
+          <svg class="busca-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input class="busca-input" type="text" id="busca-input" placeholder="Busque por script, código, palavra-chave...">
+        </div>
+      </div>
+
+      <div class="filtros-barra">
+        <select class="filtro-select" id="filtro-modulo">
+          <option value="">Módulo</option>
+        </select>
+        <select class="filtro-select" id="filtro-tipo">
+          <option value="">Tipo</option>
+        </select>
+      </div>
+    </div>
+  </main>
 
   <script type="module" src="js/auth-guard.js"></script>
   <script type="module" src="js/main.js"></script>
