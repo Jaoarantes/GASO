@@ -335,7 +335,8 @@ async function buscar() {
     const termosValidos = termoBusca.split(/\s+/).filter((t) => t.length >= TAMANHO_MINIMO_TERMO);
 
     if (termoBusca === "" && !modulo && !tipo) {
-      mostrarMensagem("Digite algo ou selecione um filtro para buscar.");
+      grade.innerHTML = "";
+      vazioEl.hidden = true;
       contagemEl.textContent = "";
       return;
     }
@@ -379,4 +380,3 @@ filtroTipo.addEventListener("change", buscar);
 
 carregarFiltros();
 renderizarFavoritas();
-mostrarMensagem("Digite algo ou selecione um filtro para buscar.");

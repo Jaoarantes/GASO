@@ -222,7 +222,8 @@ html[data-sidebar="colapsada"] .sidebar__colapsar svg {
 }
 
 html[data-sidebar="colapsada"] .sidebar__topo {
-  padding: 25px 12px;
+  padding: 25px 10px;
+  gap: 6px;
   justify-content: center;
 }
 
@@ -260,8 +261,14 @@ html[data-sidebar="colapsada"] .sidebar__menu {
 }
 
 html[data-sidebar="colapsada"] .sidebar__logo {
-  width: auto;
-  height: 28px;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+html[data-sidebar="colapsada"] .sidebar__colapsar {
+  width: 24px;
+  height: 24px;
 }
 
 .conteudo {

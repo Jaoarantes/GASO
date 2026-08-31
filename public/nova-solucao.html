@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    (function () {
+      var raiz = document.documentElement;
+      raiz.setAttribute("data-theme", localStorage.getItem("tema") || "light");
+      raiz.setAttribute("data-sidebar", localStorage.getItem("sidebarColapsada") === "true" ? "colapsada" : "expandida");
+    })();
+  </script>
   <title>Nova Solução | GASO</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
