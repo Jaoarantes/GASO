@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Novo SQL | GASO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/img/favicon.ico">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+</head>
+<body style="visibility: hidden">
+  <nav class="sidebar">
+    <div class="sidebar__topo">
+      <a href="index.html"><img class="sidebar__logo" src="assets/img/logo-claro.svg" alt="Gasometro"></a>
+    </div>
+
+    <div class="sidebar__menu">
+      <a class="sidebar__link" href="index.html">
+        <svg class="sidebar__link-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
+        Início
+      </a>
+      <a class="sidebar__link" href="nova-solucao.html">
+        <svg class="sidebar__link-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 12v6M9 15h6"/></svg>
+        Nova Solução
+      </a>
+      <a class="sidebar__link sidebar__link--ativo" href="novo-sql.html">
+        <svg class="sidebar__link-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+        Novo SQL
+      </a>
+      <a class="sidebar__link" href="sql.html">
+        <svg class="sidebar__link-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+        Estrutura de Tabelas
+      </a>
+    </div>
+
+    <div class="sidebar__rodape">
+      <button class="sidebar__tema" type="button" id="tema-toggle">
+        <svg class="sidebar__link-icone" id="tema-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <span id="tema-texto">Tema escuro</span>
+      </button>
+    </div>
+  </nav>
+
+  <header class="header">
+    <p class="text-header" id="pagina-cabecalho">Novo SQL</p>
+  </header>
+
+  <main class="conteudo">
+    <div class="sql-editor-secao">
+      <div class="sql-editor-toolbar">
+        <button class="sql-editor-toolbar__btn" type="button" id="sql-toolbar-script-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          <span>SQL Script</span>
+        </button>
+        <button class="sql-editor-toolbar__btn sql-editor-toolbar__btn--principal" type="button" id="sql-toolbar-executar-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-14 9z"/></svg>
+          <span>Executar</span>
+        </button>
+      </div>
+
+      <div class="sql-editor-wrapper">
+        <textarea id="sql-editor-area" spellcheck="false"></textarea>
+      </div>
+
+      <div class="sql-resultado" id="sql-resultado">
+        <p class="sql-resultado-vazio" id="sql-resultado-vazio">Escreva um comando e clique em Executar.</p>
+      </div>
+    </div>
+  </main>
+
+  <div class="painel-overlay" id="confirmar-overlay" hidden>
+    <div class="confirmar-modal">
+      <h2 class="confirmar-modal__titulo">Tem certeza?</h2>
+      <p class="confirmar-modal__mensagem" id="confirmar-mensagem"></p>
+      <div class="confirmar-modal__acoes">
+        <button class="publicacao-btn publicacao-btn--secundario" type="button" id="confirmar-cancelar-btn">Cancelar</button>
+        <button class="publicacao-btn publicacao-btn--principal" type="button" id="confirmar-executar-btn">Executar mesmo assim</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="painel-overlay" id="script-painel-overlay" hidden>
+    <aside class="painel" id="script-painel">
+      <div class="painel__topo">
+        <div class="painel__topo-selos">
+          <h2 class="painel__titulo-tabela">SQL Script</h2>
+        </div>
+        <div class="painel__topo-acoes">
+          <button class="painel__icone-btn" type="button" id="script-painel-fechar-btn" aria-label="Fechar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="painel__corpo">
+        <div class="busca-barra">
+          <svg class="busca-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input class="busca-input" type="text" id="script-painel-busca" placeholder="Buscar por título...">
+        </div>
+
+        <div class="script-painel-lista" id="script-painel-lista"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="js/auth-guard.js"></script>
+  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/pages/novo-sql.js"></script>
+</body>
+</html>
