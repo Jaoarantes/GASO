@@ -419,6 +419,43 @@ body {
   color: var(--cor-primaria);
 }
 
+.modo-busca-grupo {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  overflow: hidden;
+}
+
+.modo-busca-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-right: 1px solid var(--cor-borda);
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto-fraco);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.modo-busca-btn:last-child {
+  border-right: none;
+}
+
+.modo-busca-btn:hover {
+  background-color: var(--cor-fundo);
+}
+
+.modo-busca-btn--ativo {
+  background-color: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
+}
+
 .ordenar-btn {
   display: flex;
   align-items: center;

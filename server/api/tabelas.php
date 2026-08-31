@@ -7,9 +7,12 @@
 //
 // Duas ações via ?acao=:
 //   filtros — devolve os valores distintos de módulo/tipo (pros <select>).
-//   buscar  — recebe q/modulo/tipo, pontua cada tabela pelos termos digitados
-//             (nome pesa mais que descrição) e devolve só as que pontuam,
-//             ordenadas da mais relevante pra menos relevante.
+//   buscar  — recebe q/modulo/tipo/modo:
+//             modo=tabela (busca por tabela) — nome exato (UPPER(tabela) = q),
+//               sem pontuação, só a tabela pedida.
+//             modo=termos (padrão, busca por termos) — pontua cada tabela
+//               pelos termos digitados (nome pesa mais que descrição) e
+//               devolve só as que pontuam, da mais relevante pra menos.
 declare(strict_types=1);
 
 // ── Carrega variáveis de server/api/.env (sem depender de SetEnv/Composer,
@@ -202,6 +205,42 @@ if ($acao === 'buscar') {
     $termoBusca = trim((string)($_GET['q'] ?? ''));
     $modulo     = trim((string)($_GET['modulo'] ?? ''));
     $tipo       = trim((string)($_GET['tipo'] ?? ''));
+    $modo       = trim((string)($_GET['modo'] ?? 'termos'));
+
+    // Modo "tabela": nome exato, sem pontuacao por relevancia — quem digita
+    // PE_PEDIDOS quer só essa tabela, não AI_PE_PEDIDOS_WAKE junto.
+    if ($modo === 'tabela') {
+        if ($termoBusca === '') {
+            echo json_encode([], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $paramsTabela = [':tabela' => strtoupper($termoBusca)];
+        $whereTabela = ['UPPER(tabela) = :tabela'];
+        if ($modulo !== '') {
+            $whereTabela[] = 'modulo = :modulo';
+            $paramsTabela[':modulo'] = $modulo;
+        }
+        if ($tipo !== '') {
+            $whereTabela[] = 'tipo = :tipo';
+            $paramsTabela[':tipo'] = $tipo;
+        }
+
+        $sqlTabela = SQL_BASE_CATALOGO . "\nSELECT tabela, modulo, tipo, descricao FROM catalogo WHERE " . implode(' AND ', $whereTabela);
+
+        try {
+            $pdo = pdo_oracle();
+            $stmt = $pdo->prepare($sqlTabela);
+            $stmt->execute($paramsTabela);
+            $linhas = normalizar_lista($stmt->fetchAll());
+        } catch (Throwable $e) {
+            responder_erro(500, 'Erro ao consultar o banco de dados.');
+        }
+
+        echo json_encode($linhas, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     $termos     = array_values(array_filter(
         preg_split('/\s+/', $termoBusca) ?: [],
         fn(string $t): bool => mb_strlen($t) >= 3

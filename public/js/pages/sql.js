@@ -8,7 +8,25 @@ const vazioEl = document.getElementById("tabelas-vazio");
 const filtroModulo = document.getElementById("filtro-modulo");
 const filtroTipo = document.getElementById("filtro-tipo");
 
+const modoTabelaBtn = document.getElementById("modo-tabela");
+const modoTermosBtn = document.getElementById("modo-termos");
+
 const TAMANHO_MINIMO_TERMO = 3;
+
+let modoBusca = "termos";
+
+function aplicarModoBusca(modo) {
+  modoBusca = modo;
+  modoTabelaBtn.classList.toggle("modo-busca-btn--ativo", modo === "tabela");
+  modoTermosBtn.classList.toggle("modo-busca-btn--ativo", modo === "termos");
+  buscaInput.placeholder = modo === "tabela"
+    ? "Digite o nome exato da tabela..."
+    : "Busque por termos, ex: notas, pedidos...";
+  buscar();
+}
+
+modoTabelaBtn.addEventListener("click", () => aplicarModoBusca("tabela"));
+modoTermosBtn.addEventListener("click", () => aplicarModoBusca("termos"));
 
 function configurada() {
   return Boolean(TABELAS_API_URL && TABELAS_API_KEY);
@@ -104,24 +122,32 @@ async function buscar() {
   const modulo = filtroModulo.value;
   const tipo = filtroTipo.value;
 
-  const termosValidos = termoBusca.split(/\s+/).filter((t) => t.length >= TAMANHO_MINIMO_TERMO);
+  if (modoBusca === "tabela") {
+    if (termoBusca === "") {
+      mostrarMensagem("Digite o nome exato da tabela para buscar.");
+      contagemEl.textContent = "";
+      return;
+    }
+  } else {
+    const termosValidos = termoBusca.split(/\s+/).filter((t) => t.length >= TAMANHO_MINIMO_TERMO);
 
-  if (termoBusca === "" && !modulo && !tipo) {
-    mostrarMensagem("Digite algo ou selecione um filtro para buscar.");
-    contagemEl.textContent = "";
-    return;
-  }
+    if (termoBusca === "" && !modulo && !tipo) {
+      mostrarMensagem("Digite algo ou selecione um filtro para buscar.");
+      contagemEl.textContent = "";
+      return;
+    }
 
-  if (termoBusca !== "" && termosValidos.length === 0 && !modulo && !tipo) {
-    mostrarMensagem(`Digite termos com pelo menos ${TAMANHO_MINIMO_TERMO} letras.`);
-    contagemEl.textContent = "";
-    return;
+    if (termoBusca !== "" && termosValidos.length === 0 && !modulo && !tipo) {
+      mostrarMensagem(`Digite termos com pelo menos ${TAMANHO_MINIMO_TERMO} letras.`);
+      contagemEl.textContent = "";
+      return;
+    }
   }
 
   contagemEl.textContent = "Buscando...";
 
   try {
-    const tabelas = await chamarApi({ acao: "buscar", q: termoBusca, modulo, tipo });
+    const tabelas = await chamarApi({ acao: "buscar", modo: modoBusca, q: termoBusca, modulo, tipo });
     contagemEl.textContent = `${tabelas.length.toLocaleString("pt-BR")} tabelas encontradas`;
     renderizarResultados(tabelas);
   } catch (erro) {
