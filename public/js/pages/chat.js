@@ -129,7 +129,7 @@ function adicionarMensagemDigitando() {
 
   const bolha = document.createElement("div");
   bolha.className = "chat-bolha";
-  bolha.innerHTML = '<div class="chat-digitando"><span></span><span></span><span></span></div>';
+  bolha.innerHTML = '<div class="chat-digitando"><span class="chat-digitando__texto">COLA está pensando</span><span class="chat-digitando__pontos"><span></span><span></span><span></span></span></div>';
 
   linha.appendChild(bolha);
   mensagensEl.appendChild(linha);

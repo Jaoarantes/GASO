@@ -2902,11 +2902,23 @@ select.publicacao-select {
 .chat-digitando {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   padding: 4px 0;
 }
 
-.chat-digitando span {
+.chat-digitando__texto {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.chat-digitando__pontos {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-digitando__pontos span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -2914,11 +2926,11 @@ select.publicacao-select {
   animation: chat-pulso 1.2s infinite ease-in-out;
 }
 
-.chat-digitando span:nth-child(2) {
+.chat-digitando__pontos span:nth-child(2) {
   animation-delay: 0.15s;
 }
 
-.chat-digitando span:nth-child(3) {
+.chat-digitando__pontos span:nth-child(3) {
   animation-delay: 0.3s;
 }
 
