@@ -1,0 +1,11 @@
+{
+  "name": "gaso-api",
+  "private": true,
+  "type": "module",
+  "description": "Functions serverless da Vercel (chat com IA) do projeto GASO. O site em si (public/) e o backend Oracle (server/) nao dependem disso.",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "mammoth": "^1.8.0"
+  }
+}
