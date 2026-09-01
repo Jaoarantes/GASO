@@ -38,10 +38,23 @@ visualizacaoListaBtn.addEventListener("click", () => aplicarVisualizacao("lista"
 aplicarVisualizacao(localStorage.getItem("visualizacao") || "grade");
 
 const TIPO_INFO = {
-  erro: { label: "Erro", cor: "var(--tipo-erro-cor)", fundo: "var(--tipo-erro-fundo)" },
-  script: { label: "Script", cor: "var(--tipo-script-cor)", fundo: "var(--tipo-script-fundo)" },
-  procedimento: { label: "Procedimento", cor: "var(--tipo-procedimento-cor)", fundo: "var(--tipo-procedimento-fundo)" }
+  erro: {
+    label: "Erro", cor: "var(--tipo-erro-cor)", fundo: "var(--tipo-erro-fundo)",
+    icone: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>'
+  },
+  script: {
+    label: "Script", cor: "var(--tipo-script-cor)", fundo: "var(--tipo-script-fundo)",
+    icone: '<path d="M8 6L3 12l5 6"/><path d="M16 6l5 6-5 6"/>'
+  },
+  procedimento: {
+    label: "Procedimento", cor: "var(--tipo-procedimento-cor)", fundo: "var(--tipo-procedimento-fundo)",
+    icone: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/>'
+  }
 };
+
+const ICONE_TAG_CATEGORIA = '<path d="M3 21h18"/><path d="M5 21V10M9 21V10M15 21V10M19 21V10"/><path d="M3 10l9-6 9 6"/>';
+const ICONE_TAG_SINTOMA = '<path d="M20.59 13.41L11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1"/>';
+const ICONE_TAG_TABELA = '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>';
 
 const CRITICIDADE_INFO = {
   baixa: { label: "Baixa", cor: "var(--prioridade-baixa)" },
@@ -62,29 +75,40 @@ function iniciaisAutor(nome) {
   return ((partes[0][0] || "") + (partes[1]?.[0] || "")).toUpperCase();
 }
 
-function montarTags(solucao) {
-  const tags = [];
-  if (solucao.modulo) tags.push(solucao.modulo);
-  if (solucao.categoria) tags.push(solucao.categoria);
-  (solucao.sintomas || []).forEach((t) => t && tags.push(t));
-  (solucao.tabelas_campos || []).forEach((t) => t && tags.push(t));
-  return tags;
+function renderizarLinhaTags(itens, limite) {
+  if (itens.length === 0) return "";
+
+  const visiveis = itens.slice(0, limite);
+  const restantes = itens.length - visiveis.length;
+
+  const chipsHtml = visiveis.map((item) => `
+    <span class="solucao-card__tag">
+      <svg class="solucao-card__tag-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${item.icone}</svg>
+      ${item.texto}
+    </span>
+  `).join("");
+
+  const maisHtml = restantes > 0 ? `<span class="solucao-card__tag solucao-card__tag--mais">+${restantes}</span>` : "";
+
+  return `<div class="solucao-card__tags">${chipsHtml}${maisHtml}</div>`;
 }
 
 function criarCard(solucao) {
-  const tipoInfo = TIPO_INFO[solucao.tipo] || { label: solucao.tipo || "—", cor: "#6b7280", fundo: "#f2f3f5" };
+  const tipoInfo = TIPO_INFO[solucao.tipo] || { label: solucao.tipo || "—", cor: "#6b7280", fundo: "#f2f3f5", icone: "" };
   const criticidadeInfo = CRITICIDADE_INFO[solucao.criticidade];
 
   const card = document.createElement("div");
   card.className = "solucao-card";
 
   const emLista = grade.classList.contains("solucoes-grade--lista");
-  const tags = montarTags(solucao);
-  const tagsVisiveis = emLista ? tags : tags.slice(0, 3);
-  const tagsRestantes = emLista ? 0 : tags.length - tagsVisiveis.length;
 
-  const tagsHtml = tagsVisiveis.map((tag) => `<span class="solucao-card__tag">${tag}</span>`).join("")
-    + (tagsRestantes > 0 ? `<span class="solucao-card__tag solucao-card__tag--mais">+${tagsRestantes}</span>` : "");
+  const itensNegocio = [];
+  if (solucao.categoria) itensNegocio.push({ texto: solucao.categoria, icone: ICONE_TAG_CATEGORIA });
+  (solucao.sintomas || []).forEach((s) => s && itensNegocio.push({ texto: s, icone: ICONE_TAG_SINTOMA }));
+
+  const itensTecnicos = (solucao.tabelas_campos || [])
+    .filter(Boolean)
+    .map((t) => ({ texto: t, icone: ICONE_TAG_TABELA }));
 
   const criticidadeHtml = criticidadeInfo
     ? `<span class="criticidade-pill" style="color:${criticidadeInfo.cor};"><span class="criticidade-pill__ponto" style="background-color:${criticidadeInfo.cor};"></span>${criticidadeInfo.label}</span>`
@@ -92,14 +116,18 @@ function criarCard(solucao) {
 
   card.innerHTML = `
     <div class="solucao-card__topo">
-      <span class="tipo-pill" style="background-color:${tipoInfo.fundo}; color:${tipoInfo.cor};">${tipoInfo.label}</span>
+      <span class="tipo-pill" style="background-color:${tipoInfo.fundo}; color:${tipoInfo.cor};">
+        <svg class="tipo-pill__icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${tipoInfo.icone || ""}</svg>
+        ${tipoInfo.label}
+      </span>
       ${criticidadeHtml}
     </div>
 
     <h3 class="solucao-card__titulo">${solucao.titulo || "Sem título"}</h3>
     <p class="solucao-card__descricao">${solucao.erro || ""}</p>
 
-    <div class="solucao-card__tags">${tagsHtml}</div>
+    ${renderizarLinhaTags(itensNegocio, emLista ? itensNegocio.length : 2)}
+    ${renderizarLinhaTags(itensTecnicos, emLista ? itensTecnicos.length : 1)}
 
     <div class="solucao-card__rodape">
       <span class="solucao-card__avatar">${iniciaisAutor(solucao.autor)}</span>
