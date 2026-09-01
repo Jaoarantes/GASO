@@ -55,10 +55,14 @@ function limparAnexo() {
 
 anexarBtn.addEventListener("click", () => anexoInput.click());
 
-anexoInput.addEventListener("change", async () => {
+anexoInput.addEventListener("change", () => {
   const arquivo = anexoInput.files?.[0];
-  if (!arquivo) return;
+  if (arquivo) definirAnexo(arquivo);
+});
 
+anexoRemoverBtn.addEventListener("click", limparAnexo);
+
+async function definirAnexo(arquivo) {
   try {
     imagemPendente = await comprimirImagem(arquivo);
     anexoPreviewImg.src = imagemPendente.previewUrl;
@@ -66,9 +70,18 @@ anexoInput.addEventListener("change", async () => {
   } catch (erro) {
     limparAnexo();
   }
-});
+}
 
-anexoRemoverBtn.addEventListener("click", limparAnexo);
+// Permite colar (Ctrl+V) uma imagem direto no campo de texto — de um print
+// tirado com a tecla PrtScn/ferramenta de recorte, por exemplo.
+inputEl.addEventListener("paste", (evento) => {
+  const item = Array.from(evento.clipboardData?.items || []).find((it) => it.type.startsWith("image/"));
+  if (!item) return;
+
+  evento.preventDefault();
+  const arquivo = item.getAsFile();
+  if (arquivo) definirAnexo(arquivo);
+});
 
 function escaparHtml(texto) {
   return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
