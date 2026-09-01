@@ -731,8 +731,42 @@ function renderizarFiltrosAplicados() {
   });
 }
 
+const TAMANHO_MINIMO_TERMO_BUSCA = 3;
+
+function normalizarTextoBusca(texto) {
+  return (texto || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+function pontuarSolucaoNaBusca(solucao, termos, termoCompleto) {
+  const nome = normalizarTextoBusca(solucao.titulo);
+  const descricao = normalizarTextoBusca(solucao.erro);
+  const outros = normalizarTextoBusca([
+    solucao.categoria, solucao.modulo,
+    ...(Array.isArray(solucao.sintomas) ? solucao.sintomas : []),
+    ...(Array.isArray(solucao.tabelas_campos) ? solucao.tabelas_campos : [])
+  ].filter(Boolean).join(" "));
+
+  let pontuacao = 0;
+  termos.forEach((termo) => {
+    if (nome.includes(termo)) pontuacao += 3;
+    if (descricao.includes(termo)) pontuacao += 2;
+    if (outros.includes(termo)) pontuacao += 1;
+  });
+
+  if (pontuacao > 0) {
+    if (nome === termoCompleto) pontuacao += 1000;
+    else if (nome.startsWith(termoCompleto)) pontuacao += 500;
+    else if (nome.includes(termoCompleto)) pontuacao += 100;
+  }
+
+  return pontuacao;
+}
+
 function renderizarLista() {
-  const termo = buscaInput.value.trim().toLowerCase();
+  const termo = buscaInput.value.trim();
   const filtros = obterFiltrosAtivos();
 
   let filtradas = solucoesTodas.filter((solucao) => {
@@ -747,23 +781,28 @@ function renderizarLista() {
       if (diffDias > diasLimite) return false;
     }
 
-    if (termo) {
-      const termos = termo.split(/\s+/).filter(Boolean);
-      const alvo = [
-        solucao.titulo, solucao.erro, solucao.categoria, solucao.modulo,
-        ...(Array.isArray(solucao.sintomas) ? solucao.sintomas : []),
-        ...(Array.isArray(solucao.tabelas_campos) ? solucao.tabelas_campos : [])
-      ].filter(Boolean).join(" ").toLowerCase();
-      if (!termos.every((t) => alvo.includes(t))) return false;
-    }
-
     return true;
   });
 
-  filtradas = filtradas.slice().sort((a, b) => {
-    const diff = new Date(b.criado_em) - new Date(a.criado_em);
-    return ordenacao === "recentes" ? diff : -diff;
-  });
+  if (termo) {
+    const termoNormalizado = normalizarTextoBusca(termo);
+    const termos = termoNormalizado.split(/\s+/).filter((t) => t.length >= TAMANHO_MINIMO_TERMO_BUSCA);
+
+    filtradas = termos.length === 0 ? [] : filtradas
+      .map((solucao) => ({ solucao, pontuacao: pontuarSolucaoNaBusca(solucao, termos, termoNormalizado) }))
+      .filter((item) => item.pontuacao > 0)
+      .sort((a, b) => {
+        if (b.pontuacao !== a.pontuacao) return b.pontuacao - a.pontuacao;
+        const diff = new Date(b.solucao.criado_em) - new Date(a.solucao.criado_em);
+        return ordenacao === "recentes" ? diff : -diff;
+      })
+      .map((item) => item.solucao);
+  } else {
+    filtradas = filtradas.slice().sort((a, b) => {
+      const diff = new Date(b.criado_em) - new Date(a.criado_em);
+      return ordenacao === "recentes" ? diff : -diff;
+    });
+  }
 
   grade.innerHTML = "";
 
