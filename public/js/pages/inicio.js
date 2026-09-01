@@ -564,8 +564,8 @@ async function baixarPdfSolucao(solucao) {
       const imagens = passo.imagens || [];
       if (imagens.length > 0) {
         let x = margem + 8;
-        const larguraMaxImg = 110;
-        const alturaMaxImg = 90;
+        const larguraMaxImg = 150;
+        const alturaMaxImg = 130;
         let maiorAlturaLinha = 0;
 
         for (const imagem of imagens) {
