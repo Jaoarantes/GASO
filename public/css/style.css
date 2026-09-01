@@ -2180,18 +2180,6 @@ select.publicacao-select {
   border-top: 1px solid var(--cor-borda);
 }
 
-.painel__copiar {
-  flex: 1;
-  border: 1px solid var(--cor-borda);
-  background-color: var(--cor-superficie);
-  border-radius: var(--raio-sm);
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--cor-texto);
-  cursor: pointer;
-}
-
 .painel__baixar {
   flex: 1;
   border: none;
@@ -2211,10 +2199,6 @@ select.publicacao-select {
 .painel__baixar:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.painel__copiar:hover {
-  background-color: var(--cor-fundo);
 }
 
 /* Lightbox de imagem do passo */

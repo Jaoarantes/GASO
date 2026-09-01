@@ -186,7 +186,6 @@ const painelEditarBtn = document.getElementById("painel-editar");
 const painelExcluirBtn = document.getElementById("painel-excluir");
 const painelExpandirBtn = document.getElementById("painel-expandir");
 const painelFecharBtn = document.getElementById("painel-fechar");
-const painelCopiarBtn = document.getElementById("painel-copiar-link");
 const painelBaixarBtn = document.getElementById("painel-baixar-pdf");
 
 let solucaoAberta = null;
@@ -420,16 +419,6 @@ painelExpandirBtn.addEventListener("click", () => {
   painelEl.classList.toggle("painel--expandido");
 });
 
-painelCopiarBtn.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(window.location.href);
-    painelCopiarBtn.textContent = "Link copiado!";
-    setTimeout(() => { painelCopiarBtn.textContent = "Copiar link"; }, 1500);
-  } catch (erro) {
-    console.error("Não foi possível copiar o link:", erro);
-  }
-});
-
 function nomeArquivoPdf(titulo) {
   const base = (titulo || "solucao")
     .toLowerCase()
@@ -440,12 +429,48 @@ function nomeArquivoPdf(titulo) {
   return `${base || "solucao"}.pdf`;
 }
 
-function baixarPdfSolucao(solucao) {
+async function carregarImagemBase64(url) {
+  try {
+    const resposta = await fetch(url);
+    if (!resposta.ok) throw new Error(`Resposta ${resposta.status}`);
+    const blob = await resposta.blob();
+    return await new Promise((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onloadend = () => resolve(leitor.result);
+      leitor.onerror = () => reject(new Error("Falha ao ler imagem"));
+      leitor.readAsDataURL(blob);
+    });
+  } catch (erro) {
+    console.error("Não foi possível carregar imagem para o PDF:", url, erro);
+    return null;
+  }
+}
+
+function medirImagem(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ largura: img.naturalWidth || 4, altura: img.naturalHeight || 3 });
+    img.onerror = () => resolve({ largura: 4, altura: 3 });
+    img.src = dataUrl;
+  });
+}
+
+function formatoDaDataUrl(dataUrl) {
+  const match = /^data:image\/(\w+);base64,/.exec(dataUrl);
+  if (!match) return "JPEG";
+  const tipo = match[1].toUpperCase();
+  return tipo === "JPG" ? "JPEG" : tipo;
+}
+
+async function baixarPdfSolucao(solucao) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
   const margem = 18;
   const larguraUtil = 210 - margem * 2;
+  const corMarca = [232, 78, 14];
+  const corTexto = [30, 30, 30];
+  const corTextoSuave = [120, 120, 120];
   let y = 20;
 
   function avancar(altura) {
@@ -456,105 +481,153 @@ function baixarPdfSolucao(solucao) {
     }
   }
 
-  function titulo(texto, tamanho = 12) {
+  function garantirEspaco(altura) {
+    if (y + altura > 285) {
+      doc.addPage();
+      y = 20;
+    }
+  }
+
+  function secaoTitulo(texto) {
+    garantirEspaco(12);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(tamanho);
-    doc.setTextColor(20, 20, 20);
-    doc.text(texto, margem, y);
-    avancar(tamanho / 1.6);
+    doc.setFontSize(12);
+    doc.setTextColor(...corMarca);
+    doc.text(texto.toUpperCase(), margem, y);
+    avancar(2);
+    doc.setDrawColor(...corMarca);
+    doc.setLineWidth(0.4);
+    doc.line(margem, y, margem + larguraUtil, y);
+    avancar(6);
   }
 
   function paragrafo(texto, tamanho = 10, fonte = "helvetica") {
     if (!texto) return;
     doc.setFont(fonte, "normal");
     doc.setFontSize(tamanho);
-    doc.setTextColor(60, 60, 60);
+    doc.setTextColor(...corTexto);
     doc.splitTextToSize(texto, larguraUtil).forEach((linha) => {
+      garantirEspaco(tamanho / 1.8);
       doc.text(linha, margem, y);
       avancar(tamanho / 1.8);
     });
   }
 
-  const tipoInfo = TIPO_INFO[solucao.tipo] || { label: solucao.tipo || "—" };
-  const criticidadeInfo = CRITICIDADE_INFO[solucao.criticidade];
-
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(17);
-  doc.setTextColor(20, 20, 20);
+  doc.setFontSize(18);
+  doc.setTextColor(...corTexto);
   doc.splitTextToSize(solucao.titulo || "Sem título", larguraUtil).forEach((linha) => {
     doc.text(linha, margem, y);
-    avancar(7.5);
+    avancar(8);
   });
   avancar(2);
 
-  paragrafo(`${tipoInfo.label} · Prioridade: ${criticidadeInfo?.label || "Não informado"}`, 10);
-  avancar(1);
-  paragrafo(`Categoria: ${solucao.categoria || "Não informado"}    Autor: ${solucao.autor || "Não informado"}    Criado em: ${formatarData(solucao.criado_em)}`, 9);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...corTextoSuave);
+  doc.text(`${solucao.autor || "Autor não informado"}  ·  ${formatarData(solucao.criado_em)}`, margem, y);
   avancar(4);
 
-  if (solucao.erro) {
-    titulo("Descrição");
-    paragrafo(solucao.erro);
+  doc.setDrawColor(230, 230, 230);
+  doc.setLineWidth(0.3);
+  doc.line(margem, y, margem + larguraUtil, y);
+  avancar(8);
+
+  const codigo = solucao.tipo === "script" ? solucao.codigo : solucao.codigo_erro;
+  if (codigo) {
+    secaoTitulo(solucao.tipo === "script" ? "Código" : "Código ou mensagem de erro");
+    paragrafo(codigo, 9, "courier");
     avancar(4);
   }
 
-  if (solucao.tipo === "script") {
-    if (solucao.codigo) {
-      titulo("Código");
-      paragrafo(solucao.codigo, 9, "courier");
-      avancar(4);
-    }
+  const passos = solucao.passos || [];
+  if (passos.length > 0) {
+    secaoTitulo("Passo a passo da solução");
 
-    if ((solucao.parametros || []).length > 0) {
-      titulo("Parâmetros a substituir");
-      solucao.parametros.forEach((p) => paragrafo(`${p.nome}: ${p.descricao}`));
-      avancar(4);
-    }
+    for (const passo of passos) {
+      garantirEspaco(6);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...corMarca);
+      doc.text(`${passo.ordem}.`, margem, y);
 
-    const riscoInfo = RISCO_INFO[solucao.risco];
-    paragrafo(`Nível de risco: ${riscoInfo?.label || "Não informado"}    Reversível: ${solucao.reversivel ? "Sim" : "Não"}`);
-    avancar(4);
-
-    if (solucao.resultado_esperado) {
-      titulo("Resultado esperado");
-      paragrafo(solucao.resultado_esperado);
-      avancar(4);
-    }
-  } else {
-    const passos = solucao.passos || [];
-    if (passos.length > 0) {
-      titulo("Passo a passo da solução");
-      passos.forEach((passo) => {
-        paragrafo(`${passo.ordem}. ${passo.texto || ""}`);
-        if ((passo.imagens || []).length > 0) {
-          paragrafo(`(${passo.imagens.length} imagem(ns) anexada(s) — ver no site)`, 8);
-        }
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...corTexto);
+      const linhasTexto = doc.splitTextToSize(passo.texto || "", larguraUtil - 8);
+      linhasTexto.forEach((linha, indice) => {
+        garantirEspaco(5);
+        doc.text(linha, margem + 8, y);
+        if (indice < linhasTexto.length - 1) avancar(5);
       });
-      avancar(4);
+      avancar(6);
+
+      const imagens = passo.imagens || [];
+      if (imagens.length > 0) {
+        let x = margem + 8;
+        const larguraMaxImg = 55;
+        const alturaMaxImg = 42;
+        let maiorAlturaLinha = 0;
+
+        for (const imagem of imagens) {
+          const dataUrl = await carregarImagemBase64(imagem.url);
+          if (!dataUrl) continue;
+
+          const { largura, altura } = await medirImagem(dataUrl);
+          let larguraImg = larguraMaxImg;
+          let alturaImg = (altura / largura) * larguraImg;
+          if (alturaImg > alturaMaxImg) {
+            alturaImg = alturaMaxImg;
+            larguraImg = (largura / altura) * alturaImg;
+          }
+
+          if (x + larguraImg > margem + larguraUtil) {
+            x = margem + 8;
+            avancar(maiorAlturaLinha + 4);
+            maiorAlturaLinha = 0;
+          }
+
+          garantirEspaco(alturaImg + 4);
+
+          try {
+            doc.addImage(dataUrl, formatoDaDataUrl(dataUrl), x, y, larguraImg, alturaImg);
+          } catch (erro) {
+            console.error("Não foi possível inserir imagem no PDF:", erro);
+          }
+
+          x += larguraImg + 4;
+          maiorAlturaLinha = Math.max(maiorAlturaLinha, alturaImg);
+        }
+
+        avancar(maiorAlturaLinha + 8);
+      } else {
+        avancar(4);
+      }
     }
+
+    avancar(2);
   }
 
-  const tags = [...(solucao.sintomas || []), ...(solucao.tabelas_campos || [])];
-  if (tags.length > 0) {
-    titulo("Palavras-chave e tabelas");
-    paragrafo(tags.join(", "));
+  if ((solucao.sintomas || []).length > 0) {
+    secaoTitulo("Palavras-chave");
+    paragrafo(solucao.sintomas.join(", "));
     avancar(4);
   }
 
-  if ((solucao.anexos || []).length > 0) {
-    titulo("Anexos");
-    solucao.anexos.forEach((anexo) => paragrafo(`• ${anexo.nome}`));
+  if ((solucao.tabelas_campos || []).length > 0) {
+    secaoTitulo("Tabelas e campos envolvidos");
+    paragrafo(solucao.tabelas_campos.join(", "));
+    avancar(4);
   }
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(140, 140, 140);
+  doc.setTextColor(...corTextoSuave);
   doc.text("Base de Soluções — Gasômetro Madeiras", margem, 290);
 
   doc.save(nomeArquivoPdf(solucao.titulo));
 }
 
-painelBaixarBtn.addEventListener("click", () => {
+painelBaixarBtn.addEventListener("click", async () => {
   if (!solucaoAberta) return;
 
   if (!window.jspdf) {
@@ -562,13 +635,17 @@ painelBaixarBtn.addEventListener("click", () => {
     return;
   }
 
+  const textoOriginal = painelBaixarBtn.textContent;
   painelBaixarBtn.disabled = true;
+  painelBaixarBtn.textContent = "Gerando PDF...";
+
   try {
-    baixarPdfSolucao(solucaoAberta);
+    await baixarPdfSolucao(solucaoAberta);
   } catch (erro) {
     console.error("Erro ao gerar PDF:", erro);
   } finally {
     painelBaixarBtn.disabled = false;
+    painelBaixarBtn.textContent = textoOriginal;
   }
 });
 
