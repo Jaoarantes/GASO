@@ -14,6 +14,37 @@ const anexoRemoverBtn = document.getElementById("chat-anexo-remover");
 
 let imagemPendente = null; // { mimeType, data (base64 sem prefixo), previewUrl }
 
+// Historico da conversa, salvo so nesse navegador (localStorage).
+const HISTORICO_CHAVE = "colaHistoricoConversa";
+const HISTORICO_LIMITE = 60; // mensagens mais recentes guardadas
+
+function lerHistorico() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORICO_CHAVE) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function salvarNoHistorico(entrada) {
+  const historico = lerHistorico();
+  historico.push(entrada);
+  const limitado = historico.slice(-HISTORICO_LIMITE);
+
+  try {
+    localStorage.setItem(HISTORICO_CHAVE, JSON.stringify(limitado));
+  } catch {
+    // Provavelmente estourou a cota por causa das imagens em base64 —
+    // tenta de novo sem elas, pra nao perder o texto da conversa.
+    try {
+      const semImagens = limitado.map((m) => ({ ...m, imagem: undefined }));
+      localStorage.setItem(HISTORICO_CHAVE, JSON.stringify(semImagens));
+    } catch {
+      // Sem espaço mesmo; segue sem salvar essa mensagem.
+    }
+  }
+}
+
 // Reduz a imagem antes de enviar (limite maior que 1600px so deixa a
 // requisicao mais pesada sem ganho real pra leitura de print/erro).
 function comprimirImagem(file) {
@@ -211,6 +242,40 @@ function adicionarMensagemUsuario(texto, previewUrl) {
   rolarParaFinal();
 }
 
+function adicionarMensagemBot(texto, ehErro) {
+  vazioEl?.setAttribute("hidden", "");
+
+  const linha = document.createElement("div");
+  linha.className = "chat-mensagem chat-mensagem--bot" + (ehErro ? " chat-mensagem--erro" : "");
+  linha.appendChild(criarAvatarBot());
+
+  const bolha = document.createElement("div");
+  bolha.className = "chat-bolha";
+  if (ehErro) {
+    bolha.textContent = texto;
+  } else {
+    bolha.innerHTML = renderizarMarkdown(texto);
+  }
+
+  linha.appendChild(bolha);
+  mensagensEl.appendChild(linha);
+}
+
+// Reconstroi a conversa salva no navegador, se tiver alguma.
+function restaurarHistorico() {
+  const historico = lerHistorico();
+  if (!historico.length) return;
+
+  for (const msg of historico) {
+    if (msg.papel === "usuario") {
+      adicionarMensagemUsuario(msg.texto, msg.imagem);
+    } else {
+      adicionarMensagemBot(msg.texto, msg.papel === "erro");
+    }
+  }
+  rolarParaFinal();
+}
+
 function adicionarMensagemDigitando() {
   const linha = document.createElement("div");
   linha.className = "chat-mensagem chat-mensagem--bot";
@@ -229,6 +294,7 @@ function adicionarMensagemDigitando() {
 async function enviarPergunta(pergunta) {
   const imagem = imagemPendente;
   adicionarMensagemUsuario(pergunta, imagem?.previewUrl);
+  salvarNoHistorico({ papel: "usuario", texto: pergunta, imagem: imagem?.previewUrl || undefined });
 
   inputEl.value = "";
   inputEl.style.height = "auto";
@@ -251,14 +317,19 @@ async function enviarPergunta(pergunta) {
     const dados = await resposta.json();
 
     if (!resposta.ok || dados.erro) {
+      const mensagemErro = dados.erro || "Não foi possível responder agora.";
       linha.classList.add("chat-mensagem--erro");
-      bolha.textContent = dados.erro || "Não foi possível responder agora.";
+      bolha.textContent = mensagemErro;
+      salvarNoHistorico({ papel: "erro", texto: mensagemErro });
     } else {
       bolha.innerHTML = renderizarMarkdown(dados.resposta || "");
+      salvarNoHistorico({ papel: "bot", texto: dados.resposta || "" });
     }
   } catch (erro) {
+    const mensagemErro = "Não foi possível conectar ao chat. Tente novamente.";
     linha.classList.add("chat-mensagem--erro");
-    bolha.textContent = "Não foi possível conectar ao chat. Tente novamente.";
+    bolha.textContent = mensagemErro;
+    salvarNoHistorico({ papel: "erro", texto: mensagemErro });
   } finally {
     inputEl.disabled = false;
     enviarBtn.disabled = false;
@@ -285,3 +356,5 @@ inputEl.addEventListener("input", () => {
   inputEl.style.height = "auto";
   inputEl.style.height = `${Math.min(inputEl.scrollHeight, 140)}px`;
 });
+
+restaurarHistorico();
