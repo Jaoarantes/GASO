@@ -163,14 +163,28 @@ executarBtn.addEventListener("click", () => {
 });
 
 // ── Painel "SQL Script" ──────────────────────────────────────────────────
+// Dois estados: "categorias" (grade de categorias) e "categoria" (lista de
+// scripts de uma categoria). A busca se comporta diferente em cada estado:
+// na tela de categorias ela busca por título em TODOS os scripts; dentro de
+// uma categoria ela filtra só os scripts daquela categoria.
 const scriptPainelOverlay = document.getElementById("script-painel-overlay");
 const scriptPainelBusca = document.getElementById("script-painel-busca");
 const scriptPainelLista = document.getElementById("script-painel-lista");
 const scriptPainelFecharBtn = document.getElementById("script-painel-fechar-btn");
+const scriptPainelVoltarBtn = document.getElementById("script-painel-voltar-btn");
+const scriptPainelTituloEl = document.getElementById("script-painel-titulo");
 
 let scriptsCarregados = [];
+let categoriaAtual = null;
 
-function renderizarScripts(scripts) {
+function categoriasUnicas() {
+  const nomes = scriptsCarregados
+    .map((s) => s.categoria)
+    .filter(Boolean);
+  return [...new Set(nomes)].sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+function renderizarItensScript(scripts) {
   scriptPainelLista.innerHTML = "";
 
   if (scripts.length === 0) {
@@ -202,11 +216,52 @@ function renderizarScripts(scripts) {
   });
 }
 
+function renderizarCategorias(categorias) {
+  scriptPainelLista.innerHTML = "";
+
+  if (categorias.length === 0) {
+    scriptPainelLista.innerHTML = `<p class="solucoes-vazio">Nenhuma categoria encontrada.</p>`;
+    return;
+  }
+
+  categorias.forEach((categoria) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "script-painel-item";
+
+    const titulo = document.createElement("span");
+    titulo.className = "script-painel-item__titulo";
+    titulo.textContent = categoria;
+
+    item.appendChild(titulo);
+    item.addEventListener("click", () => abrirCategoria(categoria));
+    scriptPainelLista.appendChild(item);
+  });
+}
+
+function mostrarTelaCategorias() {
+  categoriaAtual = null;
+  scriptPainelVoltarBtn.hidden = true;
+  scriptPainelTituloEl.textContent = "SQL Script";
+  scriptPainelBusca.value = "";
+  scriptPainelBusca.placeholder = "Buscar por título...";
+  renderizarCategorias(categoriasUnicas());
+}
+
+function abrirCategoria(categoria) {
+  categoriaAtual = categoria;
+  scriptPainelVoltarBtn.hidden = false;
+  scriptPainelTituloEl.textContent = categoria;
+  scriptPainelBusca.value = "";
+  scriptPainelBusca.placeholder = "Buscar por título...";
+  renderizarItensScript(scriptsCarregados.filter((s) => s.categoria === categoria));
+}
+
 async function carregarScripts() {
   scriptPainelLista.innerHTML = `<p class="solucoes-vazio">Carregando...</p>`;
   const { data, error } = await supabase
     .from("solucoes")
-    .select("id,titulo,erro,codigo")
+    .select("id,titulo,erro,codigo,categoria")
     .eq("tipo", "script")
     .order("titulo");
 
@@ -217,13 +272,12 @@ async function carregarScripts() {
   }
 
   scriptsCarregados = data || [];
-  renderizarScripts(scriptsCarregados);
+  mostrarTelaCategorias();
 }
 
 function abrirScriptPainel() {
   scriptPainelOverlay.hidden = false;
   document.body.style.overflow = "hidden";
-  scriptPainelBusca.value = "";
   carregarScripts();
 }
 
@@ -234,14 +288,28 @@ function fecharScriptPainel() {
 
 scriptBtn.addEventListener("click", abrirScriptPainel);
 scriptPainelFecharBtn.addEventListener("click", fecharScriptPainel);
+scriptPainelVoltarBtn.addEventListener("click", mostrarTelaCategorias);
 scriptPainelOverlay.addEventListener("click", (event) => {
   if (event.target === scriptPainelOverlay) fecharScriptPainel();
 });
 
 scriptPainelBusca.addEventListener("input", () => {
   const termo = scriptPainelBusca.value.trim().toLowerCase();
-  const filtrados = termo
-    ? scriptsCarregados.filter((s) => (s.titulo || "").toLowerCase().includes(termo))
-    : scriptsCarregados;
-  renderizarScripts(filtrados);
+
+  if (categoriaAtual) {
+    const scriptsDaCategoria = scriptsCarregados.filter((s) => s.categoria === categoriaAtual);
+    const filtrados = termo
+      ? scriptsDaCategoria.filter((s) => (s.titulo || "").toLowerCase().includes(termo))
+      : scriptsDaCategoria;
+    renderizarItensScript(filtrados);
+    return;
+  }
+
+  if (!termo) {
+    renderizarCategorias(categoriasUnicas());
+    return;
+  }
+
+  const resultados = scriptsCarregados.filter((s) => (s.titulo || "").toLowerCase().includes(termo));
+  renderizarItensScript(resultados);
 });

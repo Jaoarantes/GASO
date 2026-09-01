@@ -2002,6 +2002,10 @@ select.publicacao-select {
   background-color: var(--cor-fundo);
 }
 
+.painel__icone-btn[hidden] {
+  display: none;
+}
+
 .painel__corpo {
   flex: 1;
   overflow-y: auto;
