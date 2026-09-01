@@ -41,7 +41,7 @@ const DOCUMENTOS = [
   { nome: "materiais", arquivo: "SISTEMA ERP - MATERIAIS.docx" },
   { nome: "compras", arquivo: "SISTEMA ERP - COMPRAS.docx" },
   { nome: "vendas", arquivo: "SISTEMA ERP - VENDAS.docx" },
-  { nome: "configuracoes", arquivo: "SISTEMA ERP - CONFIGURAÇÕES.docx" }
+  { nome: "configuracoes", arquivo: "SISTEMA ERP - CONFIGURACOES.docx" }
 ];
 
 function supabaseAdmin() {
