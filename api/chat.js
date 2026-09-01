@@ -32,7 +32,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
 const BUCKET = "documentos-erp";
-const MODELO = "gemini-2.0-flash";
+const MODELO = "gemini-3.6-flash";
 
 // Nome de cada documento (chave no cache) -> nome exato do arquivo no bucket.
 // Se voce subir os .docx com nomes diferentes, ajusta aqui.
