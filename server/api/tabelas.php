@@ -259,17 +259,16 @@ if ($acao === 'colunas') {
     }
 
     // USER_TAB_COLUMNS/USER_COL_COMMENTS ja vem filtrada pro schema logado,
-    // sem precisar de owner = USER. tipo_tamanho monta o tipo formatado
-    // (ex: VARCHAR2(50), NUMBER(10,2)) direto no banco.
+    // sem precisar de owner = USER. tipo e tamanho vem em campos separados.
     $sql = "SELECT tc.column_name AS coluna,"
-         . " tc.data_type"
-         . "   || CASE"
-         . "        WHEN tc.data_type IN ('VARCHAR2','CHAR','NVARCHAR2')"
-         . "            THEN '(' || tc.data_length || ')'"
-         . "        WHEN tc.data_type = 'NUMBER' AND tc.data_precision IS NOT NULL"
-         . "            THEN '(' || tc.data_precision || ',' || NVL(tc.data_scale,0) || ')'"
-         . "        ELSE NULL"
-         . "      END AS tipo,"
+         . " tc.data_type AS tipo,"
+         . " CASE"
+         . "   WHEN tc.data_type IN ('VARCHAR2','CHAR','NVARCHAR2')"
+         . "       THEN TO_CHAR(tc.data_length)"
+         . "   WHEN tc.data_type = 'NUMBER' AND tc.data_precision IS NOT NULL"
+         . "       THEN tc.data_precision || ',' || NVL(tc.data_scale,0)"
+         . "   ELSE NULL"
+         . " END AS tamanho,"
          . " cc.comments AS descricao"
          . " FROM user_tab_columns tc"
          . " LEFT JOIN user_col_comments cc"

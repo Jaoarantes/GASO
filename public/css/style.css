@@ -2409,8 +2409,12 @@ select.publicacao-select {
   border-bottom: none;
 }
 
-.colunas-tabela tbody tr:hover {
+.colunas-tabela tbody tr:nth-child(even) {
   background-color: var(--cor-bloco-meta);
+}
+
+.colunas-tabela tbody tr:hover {
+  background-color: var(--cor-item-ativo);
 }
 
 .coluna-nome {
@@ -2420,6 +2424,11 @@ select.publicacao-select {
 }
 
 .coluna-tipo {
+  color: var(--cor-texto-fraco);
+  white-space: nowrap;
+}
+
+.coluna-tamanho {
   color: var(--cor-texto-fraco);
   white-space: nowrap;
 }
