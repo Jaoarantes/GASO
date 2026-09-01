@@ -111,7 +111,7 @@ function criarCard(solucao) {
     .map((t) => ({ texto: t, icone: ICONE_TAG_TABELA }));
 
   const criticidadeHtml = criticidadeInfo
-    ? `<span class="criticidade-pill" style="color:${criticidadeInfo.cor};"><span class="criticidade-pill__ponto" style="background-color:${criticidadeInfo.cor};"></span>${criticidadeInfo.label}</span>`
+    ? `<span class="criticidade-pill"><span class="criticidade-pill__ponto" style="background-color:${criticidadeInfo.cor};"></span>${criticidadeInfo.label}</span>`
     : "";
 
   card.innerHTML = `
