@@ -131,7 +131,13 @@ export default async function handler(req, res) {
       DOCUMENTOS.map((doc) => obterArquivoGemini(fileManager, supabase, doc))
     );
 
-    const model = genAI.getGenerativeModel({ model: MODELO });
+    const model = genAI.getGenerativeModel({
+      model: MODELO,
+      generationConfig: {
+        temperature: 0.25,
+        maxOutputTokens: 8192
+      }
+    });
 
     const partesArquivos = arquivos.map((a) => ({
       fileData: { mimeType: a.mimeType, fileUri: a.uri }
@@ -145,12 +151,19 @@ export default async function handler(req, res) {
       ...partesArquivos,
       ...partesImagem,
       {
-        text: "Você é um assistente de suporte da Base de Soluções da Gasômetro Madeiras."
-          + " Responda em português, de forma direta, com base apenas nos documentos anexados"
-          + " (páginas do ERP: Financeiro, Materiais, Compras, Vendas, Configurações)."
-          + " Se a resposta não estiver nos documentos, diga claramente que não encontrou"
-          + " essa informação, em vez de inventar."
-          + (temImagem ? " O usuário também anexou uma imagem (pode ser um print de tela, erro ou tabela) — analise-a e leve em conta na resposta." : "")
+        text: "Você é o COLA, assistente de suporte da Base de Soluções da Gasômetro Madeiras,"
+          + " especialista no ERP NL Gestão."
+          + " Antes de responder, revise com atenção o conteúdo completo dos 5 documentos anexados"
+          + " (Financeiro, Materiais, Compras, Vendas, Configurações) — não se baseie só no início"
+          + " de cada um, procure em todos, inclusive quando a resposta exigir cruzar informação"
+          + " de mais de um documento ou de mais de uma seção do mesmo documento."
+          + " Responda em português, com a resposta mais completa e precisa possível: inclua o"
+          + " caminho de navegação exato, números de página/objeto, nomes de campos e o passo a"
+          + " passo, sempre que essas informações existirem nos documentos. Se houver mais de uma"
+          + " forma de fazer o que foi perguntado, liste todas. Não seja superficial nem genérico."
+          + " Se a resposta não estiver nos documentos mesmo depois dessa revisão cuidadosa, diga"
+          + " claramente que não encontrou essa informação, em vez de inventar."
+          + (temImagem ? " O usuário também anexou uma imagem (pode ser um print de tela, erro ou tabela) — analise-a com atenção e cruze com os documentos antes de responder." : "")
           + "\n\nPergunta: " + (pergunta || "Descreva o que você vê na imagem anexada e ajude com base nela.")
       }
     ]);
