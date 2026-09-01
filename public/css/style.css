@@ -1843,6 +1843,8 @@ select.publicacao-select {
   font-weight: 700;
   color: var(--cor-texto);
   line-height: 1.35;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .solucao-card__descricao {
