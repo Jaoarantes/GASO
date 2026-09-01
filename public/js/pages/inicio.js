@@ -187,6 +187,7 @@ const painelExcluirBtn = document.getElementById("painel-excluir");
 const painelExpandirBtn = document.getElementById("painel-expandir");
 const painelFecharBtn = document.getElementById("painel-fechar");
 const painelCopiarBtn = document.getElementById("painel-copiar-link");
+const painelBaixarBtn = document.getElementById("painel-baixar-pdf");
 
 let solucaoAberta = null;
 
@@ -426,6 +427,148 @@ painelCopiarBtn.addEventListener("click", async () => {
     setTimeout(() => { painelCopiarBtn.textContent = "Copiar link"; }, 1500);
   } catch (erro) {
     console.error("Não foi possível copiar o link:", erro);
+  }
+});
+
+function nomeArquivoPdf(titulo) {
+  const base = (titulo || "solucao")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-+|-+$)/g, "");
+  return `${base || "solucao"}.pdf`;
+}
+
+function baixarPdfSolucao(solucao) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+  const margem = 18;
+  const larguraUtil = 210 - margem * 2;
+  let y = 20;
+
+  function avancar(altura) {
+    y += altura;
+    if (y > 275) {
+      doc.addPage();
+      y = 20;
+    }
+  }
+
+  function titulo(texto, tamanho = 12) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(tamanho);
+    doc.setTextColor(20, 20, 20);
+    doc.text(texto, margem, y);
+    avancar(tamanho / 1.6);
+  }
+
+  function paragrafo(texto, tamanho = 10, fonte = "helvetica") {
+    if (!texto) return;
+    doc.setFont(fonte, "normal");
+    doc.setFontSize(tamanho);
+    doc.setTextColor(60, 60, 60);
+    doc.splitTextToSize(texto, larguraUtil).forEach((linha) => {
+      doc.text(linha, margem, y);
+      avancar(tamanho / 1.8);
+    });
+  }
+
+  const tipoInfo = TIPO_INFO[solucao.tipo] || { label: solucao.tipo || "—" };
+  const criticidadeInfo = CRITICIDADE_INFO[solucao.criticidade];
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(17);
+  doc.setTextColor(20, 20, 20);
+  doc.splitTextToSize(solucao.titulo || "Sem título", larguraUtil).forEach((linha) => {
+    doc.text(linha, margem, y);
+    avancar(7.5);
+  });
+  avancar(2);
+
+  paragrafo(`${tipoInfo.label} · Prioridade: ${criticidadeInfo?.label || "Não informado"}`, 10);
+  avancar(1);
+  paragrafo(`Categoria: ${solucao.categoria || "Não informado"}    Autor: ${solucao.autor || "Não informado"}    Criado em: ${formatarData(solucao.criado_em)}`, 9);
+  avancar(4);
+
+  if (solucao.erro) {
+    titulo("Descrição");
+    paragrafo(solucao.erro);
+    avancar(4);
+  }
+
+  if (solucao.tipo === "script") {
+    if (solucao.codigo) {
+      titulo("Código");
+      paragrafo(solucao.codigo, 9, "courier");
+      avancar(4);
+    }
+
+    if ((solucao.parametros || []).length > 0) {
+      titulo("Parâmetros a substituir");
+      solucao.parametros.forEach((p) => paragrafo(`${p.nome}: ${p.descricao}`));
+      avancar(4);
+    }
+
+    const riscoInfo = RISCO_INFO[solucao.risco];
+    paragrafo(`Nível de risco: ${riscoInfo?.label || "Não informado"}    Reversível: ${solucao.reversivel ? "Sim" : "Não"}`);
+    avancar(4);
+
+    if (solucao.resultado_esperado) {
+      titulo("Resultado esperado");
+      paragrafo(solucao.resultado_esperado);
+      avancar(4);
+    }
+  } else {
+    const passos = solucao.passos || [];
+    if (passos.length > 0) {
+      titulo("Passo a passo da solução");
+      passos.forEach((passo) => {
+        paragrafo(`${passo.ordem}. ${passo.texto || ""}`);
+        if ((passo.imagens || []).length > 0) {
+          paragrafo(`(${passo.imagens.length} imagem(ns) anexada(s) — ver no site)`, 8);
+        }
+      });
+      avancar(4);
+    }
+  }
+
+  const tags = [...(solucao.sintomas || []), ...(solucao.tabelas_campos || [])];
+  if (tags.length > 0) {
+    titulo("Palavras-chave e tabelas");
+    paragrafo(tags.join(", "));
+    avancar(4);
+  }
+
+  if ((solucao.anexos || []).length > 0) {
+    titulo("Anexos");
+    solucao.anexos.forEach((anexo) => paragrafo(`• ${anexo.nome}`));
+  }
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(140, 140, 140);
+  doc.text("Base de Soluções — Gasômetro Madeiras", margem, 290);
+
+  doc.save(nomeArquivoPdf(solucao.titulo));
+}
+
+painelBaixarBtn.addEventListener("click", () => {
+  if (!solucaoAberta) return;
+
+  if (!window.jspdf) {
+    console.error("Biblioteca de geração de PDF não carregou.");
+    return;
+  }
+
+  painelBaixarBtn.disabled = true;
+  try {
+    baixarPdfSolucao(solucaoAberta);
+  } catch (erro) {
+    console.error("Erro ao gerar PDF:", erro);
+  } finally {
+    painelBaixarBtn.disabled = false;
   }
 });
 
