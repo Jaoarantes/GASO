@@ -7,8 +7,10 @@
 //      e sobe esse texto pro Gemini File API — guarda a referencia devolvida
 //      (expira em ~48h) pra reusar nas proximas perguntas, sem reprocessar
 //      tudo de novo.
-//   2. Chama o Gemini (generateContent) com os 5 arquivos referenciados +
-//      a pergunta do usuario, pedindo pra responder so com base neles.
+//   2. Chama o Gemini em modo chat (startChat), com os 5 arquivos referenciados,
+//      o historico de perguntas/respostas anteriores dessa conversa (mandado
+//      pelo navegador) e a pergunta atual — assim ele mantem o contexto entre
+//      uma pergunta e outra em vez de responder cada uma isolada.
 //
 // Variaveis de ambiente esperadas (Vercel > Settings > Environment Variables,
 // nunca commitadas):
@@ -122,6 +124,15 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Historico enviado pelo navegador (perguntas/respostas anteriores dessa
+  // mesma conversa), pra o COLA lembrar do que ja foi falado. Limita a 12
+  // trocas mais recentes pra nao deixar a requisicao gigante.
+  const historico = Array.isArray(req.body?.historico)
+    ? req.body.historico
+        .filter((t) => t && typeof t.pergunta === "string" && typeof t.resposta === "string")
+        .slice(-12)
+    : [];
+
   try {
     const supabase = supabaseAdmin();
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -147,24 +158,38 @@ export default async function handler(req, res) {
       ? [{ inlineData: { mimeType: imagem.mimeType, data: imagem.data } }]
       : [];
 
-    const resultado = await model.generateContent([
-      ...partesArquivos,
+    const instrucaoSistema = "Você é o COLA, assistente de suporte da Base de Soluções da Gasômetro"
+      + " Madeiras, especialista no ERP NL Gestão."
+      + " Antes de responder, revise com atenção o conteúdo completo dos 5 documentos anexados"
+      + " (Financeiro, Materiais, Compras, Vendas, Configurações) — não se baseie só no início"
+      + " de cada um, procure em todos, inclusive quando a resposta exigir cruzar informação"
+      + " de mais de um documento ou de mais de uma seção do mesmo documento."
+      + " Responda em português, com a resposta mais completa e precisa possível: inclua o"
+      + " caminho de navegação exato, números de página/objeto, nomes de campos e o passo a"
+      + " passo, sempre que essas informações existirem nos documentos. Se houver mais de uma"
+      + " forma de fazer o que foi perguntado, liste todas. Não seja superficial nem genérico."
+      + " Se a resposta não estiver nos documentos mesmo depois dessa revisão cuidadosa, diga"
+      + " claramente que não encontrou essa informação, em vez de inventar."
+      + " Essa é uma conversa contínua — leve em conta as perguntas e respostas anteriores pra"
+      + " entender o contexto (ex.: \"e o segundo passo?\", \"detalha mais isso\"), sem esquecer"
+      + " do que já foi dito antes.";
+
+    const chat = model.startChat({
+      history: [
+        { role: "user", parts: [...partesArquivos, { text: instrucaoSistema }] },
+        { role: "model", parts: [{ text: "Entendido. Revisei os 5 documentos do ERP e vou manter o contexto da nossa conversa. Pode perguntar." }] },
+        ...historico.flatMap((t) => [
+          { role: "user", parts: [{ text: t.pergunta }] },
+          { role: "model", parts: [{ text: t.resposta }] }
+        ])
+      ]
+    });
+
+    const resultado = await chat.sendMessage([
       ...partesImagem,
       {
-        text: "Você é o COLA, assistente de suporte da Base de Soluções da Gasômetro Madeiras,"
-          + " especialista no ERP NL Gestão."
-          + " Antes de responder, revise com atenção o conteúdo completo dos 5 documentos anexados"
-          + " (Financeiro, Materiais, Compras, Vendas, Configurações) — não se baseie só no início"
-          + " de cada um, procure em todos, inclusive quando a resposta exigir cruzar informação"
-          + " de mais de um documento ou de mais de uma seção do mesmo documento."
-          + " Responda em português, com a resposta mais completa e precisa possível: inclua o"
-          + " caminho de navegação exato, números de página/objeto, nomes de campos e o passo a"
-          + " passo, sempre que essas informações existirem nos documentos. Se houver mais de uma"
-          + " forma de fazer o que foi perguntado, liste todas. Não seja superficial nem genérico."
-          + " Se a resposta não estiver nos documentos mesmo depois dessa revisão cuidadosa, diga"
-          + " claramente que não encontrou essa informação, em vez de inventar."
-          + (temImagem ? " O usuário também anexou uma imagem (pode ser um print de tela, erro ou tabela) — analise-a com atenção e cruze com os documentos antes de responder." : "")
-          + "\n\nPergunta: " + (pergunta || "Descreva o que você vê na imagem anexada e ajude com base nela.")
+        text: (temImagem ? "O usuário anexou uma imagem (pode ser um print de tela, erro ou tabela) — analise-a com atenção e cruze com os documentos antes de responder.\n\n" : "")
+          + (pergunta || "Descreva o que você vê na imagem anexada e ajude com base nela.")
       }
     ]);
 

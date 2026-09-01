@@ -26,6 +26,24 @@ function lerHistorico() {
   }
 }
 
+// Pares pergunta/resposta ja concluidos dessa conversa, mandados pro servidor
+// em cada nova pergunta pra o COLA manter o contexto (nao reenvia imagens
+// antigas, so o texto). Reconstruido a partir do localStorage ao carregar.
+let turnosContexto = [];
+const TURNOS_CONTEXTO_LIMITE = 12;
+
+function construirTurnosContexto(historico) {
+  const turnos = [];
+  for (let i = 0; i < historico.length - 1; i++) {
+    const atual = historico[i];
+    const proximo = historico[i + 1];
+    if (atual.papel === "usuario" && proximo.papel === "bot") {
+      turnos.push({ pergunta: atual.texto, resposta: proximo.texto });
+    }
+  }
+  return turnos.slice(-TURNOS_CONTEXTO_LIMITE);
+}
+
 function salvarNoHistorico(entrada) {
   const historico = lerHistorico();
   historico.push(entrada);
@@ -264,6 +282,7 @@ function adicionarMensagemBot(texto, ehErro) {
 // Reconstroi a conversa salva no navegador, se tiver alguma.
 function restaurarHistorico() {
   const historico = lerHistorico();
+  turnosContexto = construirTurnosContexto(historico);
   if (!historico.length) return;
 
   for (const msg of historico) {
@@ -310,7 +329,8 @@ async function enviarPergunta(pergunta) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         pergunta,
-        imagem: imagem ? { mimeType: imagem.mimeType, data: imagem.data } : undefined
+        imagem: imagem ? { mimeType: imagem.mimeType, data: imagem.data } : undefined,
+        historico: turnosContexto
       })
     });
 
@@ -324,6 +344,7 @@ async function enviarPergunta(pergunta) {
     } else {
       bolha.innerHTML = renderizarMarkdown(dados.resposta || "");
       salvarNoHistorico({ papel: "bot", texto: dados.resposta || "" });
+      turnosContexto = [...turnosContexto, { pergunta, resposta: dados.resposta || "" }].slice(-TURNOS_CONTEXTO_LIMITE);
     }
   } catch (erro) {
     const mensagemErro = "Não foi possível conectar ao chat. Tente novamente.";
