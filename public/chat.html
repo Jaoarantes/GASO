@@ -69,7 +69,18 @@
         </div>
       </div>
 
+      <div class="chat-anexo-preview" id="chat-anexo-preview" hidden>
+        <img class="chat-anexo-preview__img" id="chat-anexo-preview-img" src="" alt="Pré-visualização da imagem anexada">
+        <button class="chat-anexo-preview__remover" type="button" id="chat-anexo-remover" aria-label="Remover imagem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
       <form class="chat-input-barra" id="chat-form">
+        <button class="chat-anexar-btn" type="button" id="chat-anexar-btn" aria-label="Anexar imagem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input type="file" id="chat-anexo-input" accept="image/*" hidden>
         <textarea class="chat-textarea" id="chat-input" placeholder="Digite sua pergunta sobre o ERP..." rows="1"></textarea>
         <button class="chat-enviar-btn" type="submit" id="chat-enviar-btn" aria-label="Enviar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>

@@ -114,8 +114,11 @@ export default async function handler(req, res) {
   }
 
   const pergunta = (req.body?.pergunta || "").trim();
-  if (!pergunta) {
-    res.status(400).json({ erro: "Envie uma pergunta." });
+  const imagem = req.body?.imagem;
+  const temImagem = imagem?.data && imagem?.mimeType;
+
+  if (!pergunta && !temImagem) {
+    res.status(400).json({ erro: "Envie uma pergunta ou uma imagem." });
     return;
   }
 
@@ -134,14 +137,21 @@ export default async function handler(req, res) {
       fileData: { mimeType: a.mimeType, fileUri: a.uri }
     }));
 
+    const partesImagem = temImagem
+      ? [{ inlineData: { mimeType: imagem.mimeType, data: imagem.data } }]
+      : [];
+
     const resultado = await model.generateContent([
       ...partesArquivos,
+      ...partesImagem,
       {
         text: "Você é um assistente de suporte da Base de Soluções da Gasômetro Madeiras."
           + " Responda em português, de forma direta, com base apenas nos documentos anexados"
           + " (páginas do ERP: Financeiro, Materiais, Compras, Vendas, Configurações)."
           + " Se a resposta não estiver nos documentos, diga claramente que não encontrou"
-          + " essa informação, em vez de inventar.\n\nPergunta: " + pergunta
+          + " essa informação, em vez de inventar."
+          + (temImagem ? " O usuário também anexou uma imagem (pode ser um print de tela, erro ou tabela) — analise-a e leve em conta na resposta." : "")
+          + "\n\nPergunta: " + (pergunta || "Descreva o que você vê na imagem anexada e ajude com base nela.")
       }
     ]);
 

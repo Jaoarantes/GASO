@@ -6,6 +6,69 @@ const vazioEl = document.getElementById("chat-vazio");
 const formEl = document.getElementById("chat-form");
 const inputEl = document.getElementById("chat-input");
 const enviarBtn = document.getElementById("chat-enviar-btn");
+const anexarBtn = document.getElementById("chat-anexar-btn");
+const anexoInput = document.getElementById("chat-anexo-input");
+const anexoPreview = document.getElementById("chat-anexo-preview");
+const anexoPreviewImg = document.getElementById("chat-anexo-preview-img");
+const anexoRemoverBtn = document.getElementById("chat-anexo-remover");
+
+let imagemPendente = null; // { mimeType, data (base64 sem prefixo), previewUrl }
+
+// Reduz a imagem antes de enviar (limite maior que 1600px so deixa a
+// requisicao mais pesada sem ganho real pra leitura de print/erro).
+function comprimirImagem(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const escala = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * escala);
+      canvas.height = Math.round(img.height * escala);
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      URL.revokeObjectURL(url);
+      resolve({
+        mimeType: "image/jpeg",
+        data: dataUrl.split(",")[1],
+        previewUrl: dataUrl
+      });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Não foi possível ler a imagem."));
+    };
+    img.src = url;
+  });
+}
+
+function limparAnexo() {
+  imagemPendente = null;
+  anexoPreview.setAttribute("hidden", "");
+  anexoPreviewImg.src = "";
+  anexoInput.value = "";
+}
+
+anexarBtn.addEventListener("click", () => anexoInput.click());
+
+anexoInput.addEventListener("change", async () => {
+  const arquivo = anexoInput.files?.[0];
+  if (!arquivo) return;
+
+  try {
+    imagemPendente = await comprimirImagem(arquivo);
+    anexoPreviewImg.src = imagemPendente.previewUrl;
+    anexoPreview.removeAttribute("hidden");
+  } catch (erro) {
+    limparAnexo();
+  }
+});
+
+anexoRemoverBtn.addEventListener("click", limparAnexo);
 
 function escaparHtml(texto) {
   return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -107,7 +170,7 @@ function criarAvatarBot() {
   return avatar;
 }
 
-function adicionarMensagemUsuario(texto) {
+function adicionarMensagemUsuario(texto, previewUrl) {
   vazioEl?.setAttribute("hidden", "");
 
   const linha = document.createElement("div");
@@ -115,7 +178,20 @@ function adicionarMensagemUsuario(texto) {
 
   const bolha = document.createElement("div");
   bolha.className = "chat-bolha";
-  bolha.innerHTML = escaparHtml(texto).replace(/\n/g, "<br>");
+
+  if (previewUrl) {
+    const img = document.createElement("img");
+    img.className = "chat-bolha__imagem";
+    img.src = previewUrl;
+    img.alt = "Imagem enviada";
+    bolha.appendChild(img);
+  }
+
+  if (texto) {
+    const p = document.createElement("div");
+    p.innerHTML = escaparHtml(texto).replace(/\n/g, "<br>");
+    bolha.appendChild(p);
+  }
 
   linha.appendChild(bolha);
   mensagensEl.appendChild(linha);
@@ -138,12 +214,14 @@ function adicionarMensagemDigitando() {
 }
 
 async function enviarPergunta(pergunta) {
-  adicionarMensagemUsuario(pergunta);
+  const imagem = imagemPendente;
+  adicionarMensagemUsuario(pergunta, imagem?.previewUrl);
 
   inputEl.value = "";
   inputEl.style.height = "auto";
   inputEl.disabled = true;
   enviarBtn.disabled = true;
+  limparAnexo();
 
   const { linha, bolha } = adicionarMensagemDigitando();
 
@@ -151,7 +229,10 @@ async function enviarPergunta(pergunta) {
     const resposta = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pergunta })
+      body: JSON.stringify({
+        pergunta,
+        imagem: imagem ? { mimeType: imagem.mimeType, data: imagem.data } : undefined
+      })
     });
 
     const dados = await resposta.json();
@@ -176,7 +257,7 @@ async function enviarPergunta(pergunta) {
 formEl.addEventListener("submit", (evento) => {
   evento.preventDefault();
   const pergunta = inputEl.value.trim();
-  if (!pergunta) return;
+  if (!pergunta && !imagemPendente) return;
   enviarPergunta(pergunta);
 });
 
