@@ -13,9 +13,9 @@
 //             modo=termos (padrão, busca por termos) — pontua cada tabela
 //               pelos termos digitados (nome pesa mais que descrição) e
 //               devolve só as que pontuam, da mais relevante pra menos.
-//   colunas — recebe tabela (nome exato) e devolve table_name/column_name/
-//             comments de ALL_COL_COMMENTS pra essa tabela (painel de
-//             detalhe, aberto ao clicar num card de resultado).
+//   colunas — recebe tabela (nome exato) e devolve coluna/tipo/descricao
+//             (USER_TAB_COLUMNS + USER_COL_COMMENTS) pra essa tabela
+//             (painel de detalhe, aberto ao clicar num card de resultado).
 declare(strict_types=1);
 
 require __DIR__ . '/_common.php';
@@ -258,14 +258,24 @@ if ($acao === 'colunas') {
         responder_erro(400, 'Parâmetro tabela obrigatório.');
     }
 
-    // Junta com ALL_TAB_COLUMNS só pra pegar column_id (ordem fisica das
-    // colunas na tabela) — ALL_COL_COMMENTS sozinha nao tem essa informacao.
-    $sql = 'SELECT cc.table_name AS tabela, cc.column_name AS coluna, cc.comments AS descricao'
-         . ' FROM ALL_COL_COMMENTS cc'
-         . ' JOIN ALL_TAB_COLUMNS tc'
-         . '   ON tc.owner = cc.owner AND tc.table_name = cc.table_name AND tc.column_name = cc.column_name'
-         . ' WHERE cc.owner = USER AND cc.table_name = :tabela'
-         . ' ORDER BY tc.column_id';
+    // USER_TAB_COLUMNS/USER_COL_COMMENTS ja vem filtrada pro schema logado,
+    // sem precisar de owner = USER. tipo_tamanho monta o tipo formatado
+    // (ex: VARCHAR2(50), NUMBER(10,2)) direto no banco.
+    $sql = "SELECT tc.column_name AS coluna,"
+         . " tc.data_type"
+         . "   || CASE"
+         . "        WHEN tc.data_type IN ('VARCHAR2','CHAR','NVARCHAR2')"
+         . "            THEN '(' || tc.data_length || ')'"
+         . "        WHEN tc.data_type = 'NUMBER' AND tc.data_precision IS NOT NULL"
+         . "            THEN '(' || tc.data_precision || ',' || NVL(tc.data_scale,0) || ')'"
+         . "        ELSE NULL"
+         . "      END AS tipo,"
+         . " cc.comments AS descricao"
+         . " FROM user_tab_columns tc"
+         . " LEFT JOIN user_col_comments cc"
+         . "   ON cc.table_name = tc.table_name AND cc.column_name = tc.column_name"
+         . " WHERE tc.table_name = :tabela"
+         . " ORDER BY tc.column_id";
 
     try {
         $pdo = pdo_oracle();
