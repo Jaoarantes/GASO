@@ -564,8 +564,8 @@ async function baixarPdfSolucao(solucao) {
       const imagens = passo.imagens || [];
       if (imagens.length > 0) {
         let x = margem + 8;
-        const larguraMaxImg = 55;
-        const alturaMaxImg = 42;
+        const larguraMaxImg = 110;
+        const alturaMaxImg = 90;
         let maiorAlturaLinha = 0;
 
         for (const imagem of imagens) {
@@ -606,23 +606,6 @@ async function baixarPdfSolucao(solucao) {
 
     avancar(2);
   }
-
-  if ((solucao.sintomas || []).length > 0) {
-    secaoTitulo("Palavras-chave");
-    paragrafo(solucao.sintomas.join(", "));
-    avancar(4);
-  }
-
-  if ((solucao.tabelas_campos || []).length > 0) {
-    secaoTitulo("Tabelas e campos envolvidos");
-    paragrafo(solucao.tabelas_campos.join(", "));
-    avancar(4);
-  }
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...corTextoSuave);
-  doc.text("Base de Soluções — Gasômetro Madeiras", margem, 290);
 
   doc.save(nomeArquivoPdf(solucao.titulo));
 }
