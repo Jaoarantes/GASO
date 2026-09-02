@@ -1,5 +1,6 @@
 import { TABELAS_API_URL, TABELAS_API_KEY } from "../config/tabelas-api-config.js";
 import { supabase } from "../config/supabase-config.js";
+import { exportarExcel, exportarCsv, exportarSql } from "./novo-sql-export.js";
 
 const ICONE_CADEADO_FECHADO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 const ICONE_CADEADO_ABERTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>';
@@ -25,6 +26,7 @@ const executarBtn = document.getElementById("sql-toolbar-executar-btn");
 const scriptBtn = document.getElementById("sql-toolbar-script-btn");
 
 let estadoResultado = null; // { sql, colunas, tiposColuna, linhas, pagina, temProximaPagina, editavel, tabela }
+let controladorMenuExport = null; // AbortController do listener global de fechar o menu de export
 
 const editor = window.CodeMirror.fromTextArea(editorArea, {
   mode: "text/x-sql",
@@ -86,13 +88,72 @@ function criarBarraFerramentas() {
 
   const exportWrapper = document.createElement("div");
   exportWrapper.className = "sql-resultado-export-wrapper";
+
   const exportBtn = document.createElement("button");
   exportBtn.type = "button";
   exportBtn.className = "painel__icone-btn";
   exportBtn.id = "resultado-export-btn";
   exportBtn.title = "Exportar";
   exportBtn.innerHTML = ICONE_EXPORT;
+
+  const exportMenu = document.createElement("div");
+  exportMenu.className = "sql-resultado-export-menu";
+  exportMenu.hidden = true;
+
+  const itemExcel = document.createElement("button");
+  itemExcel.type = "button";
+  itemExcel.className = "sql-resultado-export-item";
+  itemExcel.textContent = "Excel (.xlsx)";
+  itemExcel.addEventListener("click", () => {
+    exportarExcel(estadoResultado);
+    exportMenu.hidden = true;
+  });
+
+  const itemCsv = document.createElement("button");
+  itemCsv.type = "button";
+  itemCsv.className = "sql-resultado-export-item";
+  itemCsv.textContent = "CSV";
+  itemCsv.addEventListener("click", () => {
+    exportarCsv(estadoResultado);
+    exportMenu.hidden = true;
+  });
+
+  exportMenu.appendChild(itemExcel);
+  exportMenu.appendChild(itemCsv);
+
+  if (estadoResultado.editavel) {
+    const itemSql = document.createElement("button");
+    itemSql.type = "button";
+    itemSql.className = "sql-resultado-export-item";
+    itemSql.textContent = "SQL (.sql)";
+    itemSql.addEventListener("click", () => {
+      exportarSql(estadoResultado);
+      exportMenu.hidden = true;
+    });
+    exportMenu.appendChild(itemSql);
+  }
+
+  exportBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    exportMenu.hidden = !exportMenu.hidden;
+  });
+
+  // criarBarraFerramentas() roda de novo a cada SELECT (re-execução da
+  // query); sem abortar o listener anterior, cada barra nova acumularia
+  // mais um listener de clique "fantasma" no document (o menu antigo já
+  // nem está mais no DOM, mas o listener continuaria vivo).
+  if (controladorMenuExport) {
+    controladorMenuExport.abort();
+  }
+  controladorMenuExport = new AbortController();
+  document.addEventListener(
+    "click",
+    () => { exportMenu.hidden = true; },
+    { signal: controladorMenuExport.signal }
+  );
+
   exportWrapper.appendChild(exportBtn);
+  exportWrapper.appendChild(exportMenu);
 
   const expandirBtn = document.createElement("button");
   expandirBtn.type = "button";

@@ -2582,6 +2582,40 @@ select.publicacao-select {
   position: relative;
 }
 
+.sql-resultado-export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  background-color: var(--cor-superficie);
+  box-shadow: var(--sombra-card);
+  overflow: hidden;
+}
+
+.sql-resultado-export-menu[hidden] {
+  display: none;
+}
+
+.sql-resultado-export-item {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.sql-resultado-export-item:hover {
+  background-color: var(--cor-fundo);
+}
+
 /* Modal de confirmação */
 
 .painel-overlay--centralizado {
