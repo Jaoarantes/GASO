@@ -46,6 +46,8 @@
   --tabela-sistema-fundo: #fbe9d8;
   --tabela-diversos-cor: #c2410c;
   --tabela-diversos-fundo: #fde4d3;
+
+  --cor-aviso-fundo: #fff6d8;
 }
 
 [data-theme="dark"] {
@@ -87,6 +89,8 @@
   --tabela-sistema-fundo: rgba(227, 164, 101, 0.14);
   --tabela-diversos-cor: #fb9a67;
   --tabela-diversos-fundo: rgba(251, 154, 103, 0.14);
+
+  --cor-aviso-fundo: rgba(224, 165, 72, 0.22);
 }
 
 html[data-sidebar="colapsada"] {
@@ -2602,6 +2606,93 @@ select.publicacao-select {
   color: var(--cor-erro);
 }
 
+.celula-valor {
+  margin-right: 6px;
+}
+
+.celula-alterada {
+  background-color: var(--cor-aviso-fundo);
+}
+
+.celula-editar-btn {
+  border: none;
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--cor-texto-fraco);
+  vertical-align: middle;
+}
+
+.celula-editar-btn:hover {
+  color: var(--cor-primaria);
+}
+
+.celula-editar-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.celula-editar-input {
+  width: 100%;
+  font: inherit;
+  border: 1px solid var(--cor-primaria);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.sql-resultado-erro-post {
+  margin-top: 8px;
+}
+
+.sql-resultado-erro-post[hidden] {
+  display: none;
+}
+
+.sql-resultado-barra {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.sql-resultado-export-wrapper {
+  position: relative;
+}
+
+.sql-resultado-export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  background-color: var(--cor-superficie);
+  box-shadow: var(--sombra-card);
+  overflow: hidden;
+}
+
+.sql-resultado-export-menu[hidden] {
+  display: none;
+}
+
+.sql-resultado-export-item {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.sql-resultado-export-item:hover {
+  background-color: var(--cor-fundo);
+}
+
 /* Modal de confirmação */
 
 .painel-overlay--centralizado {
@@ -3147,4 +3238,23 @@ select.publicacao-select {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* Modo tela cheia do resultado SQL */
+
+.sql-resultado--expandido {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  max-height: none;
+  border-radius: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sql-resultado--expandido .sql-resultado-tabela-wrapper,
+.sql-resultado--expandido .colunas-tabela-wrapper {
+  flex: 1;
+  overflow: auto;
 }
