@@ -2547,25 +2547,40 @@ select.publicacao-select {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
+  box-shadow: var(--sombra-card);
 }
 
 .sql-editor-toolbar__btn svg {
   width: 16px;
   height: 16px;
+  color: var(--cor-texto-suave);
 }
 
 .sql-editor-toolbar__btn:hover {
   background-color: var(--cor-fundo);
+  border-color: var(--cor-primaria);
+}
+
+.sql-editor-toolbar__btn:hover svg {
+  color: var(--cor-primaria);
 }
 
 .sql-editor-toolbar__btn--principal {
   border: none;
-  background-color: var(--cor-primaria);
+  background-image: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-forte));
+  color: #ffffff;
+  box-shadow: var(--sombra-primaria);
+}
+
+.sql-editor-toolbar__btn--principal svg,
+.sql-editor-toolbar__btn--principal:hover svg {
   color: #ffffff;
 }
 
 .sql-editor-toolbar__btn--principal:hover {
-  background-color: var(--cor-primaria-forte);
+  background-image: linear-gradient(135deg, var(--cor-primaria-forte), var(--cor-primaria-forte));
+  border-color: transparent;
+  box-shadow: var(--sombra-primaria-hover);
 }
 
 .sql-editor-wrapper {
@@ -2574,11 +2589,22 @@ select.publicacao-select {
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   overflow: hidden;
+  box-shadow: var(--sombra-card);
+}
+
+.sql-editor-wrapper:focus-within {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 4px var(--cor-primaria-suave);
 }
 
 .sql-editor-wrapper .CodeMirror {
   height: 100%;
   font-size: 13px;
+}
+
+.sql-editor-wrapper .CodeMirror-gutters {
+  border-right: 1px solid var(--cor-divisor);
+  background-color: var(--cor-bloco-meta);
 }
 
 .sql-resultado {
@@ -2589,17 +2615,63 @@ select.publicacao-select {
   border-radius: var(--raio-sm);
   padding: 16px;
   background-color: var(--cor-superficie);
+  box-shadow: var(--sombra-card);
 }
 
 .sql-resultado-vazio,
-.sql-resultado-status {
+.sql-resultado-status,
+.sql-resultado-erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
+}
+
+.sql-resultado-vazio {
   color: var(--cor-texto-suave);
 }
 
+.sql-resultado-status {
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.sql-resultado-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--tipo-procedimento-cor);
+  flex-shrink: 0;
+}
+
 .sql-resultado-erro {
-  font-size: 13px;
   color: var(--cor-erro);
+  font-weight: 600;
+}
+
+.sql-resultado-erro::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--cor-erro);
+  flex-shrink: 0;
+}
+
+.sql-resultado .colunas-tabela-wrapper {
+  border: none;
+  /* Sem isso, esse wrapper (que tem overflow-x proprio) vira o container de
+     rolagem mais proximo do cabecalho e o "sticky" abaixo gruda nele em vez
+     de grudar no .sql-resultado (que e quem realmente rola aqui). */
+  overflow: visible;
+}
+
+.sql-resultado .colunas-tabela thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 2px solid var(--cor-primaria);
 }
 
 /* Modal de confirmação */
