@@ -97,6 +97,17 @@
     </div>
   </main>
 
+  <div class="painel-overlay painel-overlay--centralizado" id="chat-limpar-overlay" hidden>
+    <div class="confirmar-modal">
+      <h3 class="confirmar-modal__titulo">Limpar conversa</h3>
+      <p class="confirmar-modal__texto">Essa ação não pode ser desfeita. Tem certeza que deseja apagar toda a conversa com o COLA?</p>
+      <div class="confirmar-modal__acoes">
+        <button class="confirmar-modal__cancelar" type="button" id="chat-limpar-cancelar">Cancelar</button>
+        <button class="confirmar-modal__confirmar" type="button" id="chat-limpar-confirmar">Limpar</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="js/auth-guard.js"></script>
   <script type="module" src="js/main.js"></script>
   <script type="module" src="js/pages/chat.js"></script>

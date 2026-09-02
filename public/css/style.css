@@ -3029,8 +3029,8 @@ select.publicacao-select {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border: none;
   border-radius: 50%;
@@ -3045,19 +3045,19 @@ select.publicacao-select {
 }
 
 .chat-anexar-btn svg {
-  width: 19px;
-  height: 19px;
+  width: 16px;
+  height: 16px;
 }
 
 .chat-input-barra {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-lg);
   background-color: var(--cor-superficie);
-  padding: 8px;
+  padding: 5px;
   box-shadow: var(--sombra-card);
 }
 
@@ -3069,10 +3069,10 @@ select.publicacao-select {
   background: transparent;
   color: var(--cor-texto);
   font-family: inherit;
-  font-size: 14px;
-  line-height: 1.5;
-  max-height: 140px;
-  padding: 6px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  max-height: 120px;
+  padding: 5px 2px;
 }
 
 .chat-textarea::placeholder {
@@ -3083,8 +3083,8 @@ select.publicacao-select {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border: none;
   border-radius: 50%;
@@ -3095,8 +3095,8 @@ select.publicacao-select {
 }
 
 .chat-enviar-btn svg {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
 }
 
 .chat-enviar-btn:hover {
