@@ -196,6 +196,32 @@ function criarBarraFerramentas() {
   barra.appendChild(exportWrapper);
   barra.appendChild(expandirBtn);
 
+  function trocarPagina(opcoes) {
+    const ir = () => executar(estadoResultado.sql, opcoes);
+
+    if (pendenciasEdicao.size > 0) {
+      abrirConfirmacaoGenerica(
+        "Há alterações não gravadas nesta página. Trocar de página descarta essas alterações (elas não são enviadas ao banco). Deseja continuar?",
+        [...pendenciasEdicao.values()].map((a) => `${a.coluna}: "${a.valorAntigo}" → "${a.valorNovo}"`).join("\n"),
+        () => {
+          pendenciasEdicao.clear();
+          ir();
+        }
+      );
+      return;
+    }
+
+    ir();
+  }
+
+  proximaBtn.addEventListener("click", () => {
+    trocarPagina({ pagina: estadoResultado.pagina + 1 });
+  });
+
+  ultimaBtn.addEventListener("click", () => {
+    trocarPagina({ ultimaPagina: true });
+  });
+
   cadeadoBtn.addEventListener("click", () => {
     if (!estadoResultado.editavel) return;
     modoEdicao = !modoEdicao;
@@ -538,17 +564,34 @@ function abrirConfirmacao(sql) {
   );
 }
 
+function prosseguirComExecucao(sql) {
+  if (ehSelect(sql)) {
+    executar(sql);
+  } else {
+    abrirConfirmacao(sql);
+  }
+}
+
 executarBtn.addEventListener("click", () => {
   const sql = editor.getValue().trim();
   if (!sql) {
     mostrarMensagemResultado("Escreva um comando SQL antes de executar.", "erro");
     return;
   }
-  if (ehSelect(sql)) {
-    executar(sql);
-  } else {
-    abrirConfirmacao(sql);
+
+  if (pendenciasEdicao.size > 0) {
+    abrirConfirmacaoGenerica(
+      "Há alterações não gravadas na página atual. Executar uma nova consulta descarta essas alterações (elas não são enviadas ao banco). Deseja continuar?",
+      [...pendenciasEdicao.values()].map((a) => `${a.coluna}: "${a.valorAntigo}" → "${a.valorNovo}"`).join("\n"),
+      () => {
+        pendenciasEdicao.clear();
+        prosseguirComExecucao(sql);
+      }
+    );
+    return;
   }
+
+  prosseguirComExecucao(sql);
 });
 
 // ── Painel "SQL Script" ──────────────────────────────────────────────────
