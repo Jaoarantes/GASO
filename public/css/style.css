@@ -2571,6 +2571,17 @@ select.publicacao-select {
   color: var(--cor-erro);
 }
 
+.sql-resultado-barra {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.sql-resultado-export-wrapper {
+  position: relative;
+}
+
 /* Modal de confirmação */
 
 .painel-overlay--centralizado {
