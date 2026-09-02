@@ -196,6 +196,15 @@ function criarBarraFerramentas() {
   barra.appendChild(exportWrapper);
   barra.appendChild(expandirBtn);
 
+  let telaCheiaAtiva = false;
+
+  expandirBtn.addEventListener("click", () => {
+    telaCheiaAtiva = !telaCheiaAtiva;
+    resultadoEl.classList.toggle("sql-resultado--expandido", telaCheiaAtiva);
+    expandirBtn.innerHTML = telaCheiaAtiva ? ICONE_RECOLHER : ICONE_EXPANDIR;
+    expandirBtn.title = telaCheiaAtiva ? "Recolher" : "Expandir";
+  });
+
   function trocarPagina(opcoes) {
     const ir = () => executar(estadoResultado.sql, opcoes);
 

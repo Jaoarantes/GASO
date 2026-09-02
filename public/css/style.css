@@ -3202,3 +3202,22 @@ select.publicacao-select {
   cursor: not-allowed;
   box-shadow: none;
 }
+
+/* Modo tela cheia do resultado SQL */
+
+.sql-resultado--expandido {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  max-height: none;
+  border-radius: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sql-resultado--expandido .sql-resultado-tabela-wrapper,
+.sql-resultado--expandido .colunas-tabela-wrapper {
+  flex: 1;
+  overflow: auto;
+}
