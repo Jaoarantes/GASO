@@ -11,6 +11,7 @@ const anexoInput = document.getElementById("chat-anexo-input");
 const anexoPreview = document.getElementById("chat-anexo-preview");
 const anexoPreviewImg = document.getElementById("chat-anexo-preview-img");
 const anexoRemoverBtn = document.getElementById("chat-anexo-remover");
+const limparBtn = document.getElementById("chat-limpar-btn");
 
 let imagemPendente = null; // { mimeType, data (base64 sem prefixo), previewUrl }
 
@@ -376,6 +377,16 @@ inputEl.addEventListener("keydown", (evento) => {
 inputEl.addEventListener("input", () => {
   inputEl.style.height = "auto";
   inputEl.style.height = `${Math.min(inputEl.scrollHeight, 140)}px`;
+});
+
+limparBtn.addEventListener("click", () => {
+  if (!confirm("Limpar toda a conversa com o COLA? Essa ação não pode ser desfeita.")) return;
+
+  localStorage.removeItem(HISTORICO_CHAVE);
+  turnosContexto = [];
+  mensagensEl.innerHTML = "";
+  mensagensEl.appendChild(vazioEl);
+  vazioEl.removeAttribute("hidden");
 });
 
 restaurarHistorico();

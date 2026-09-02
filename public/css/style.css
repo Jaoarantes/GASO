@@ -2750,6 +2750,39 @@ select.publicacao-select {
 
 /* Chat */
 
+.chat-header-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding-right: 24px;
+}
+
+.chat-limpar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  background-color: transparent;
+  color: var(--cor-texto-suave);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.chat-limpar-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.chat-limpar-btn:hover {
+  border-color: var(--cor-erro);
+  color: var(--cor-erro);
+}
+
 .chat-secao {
   display: flex;
   flex-direction: column;
