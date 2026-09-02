@@ -31,7 +31,7 @@ function lerHistorico() {
 }
 
 // Pares pergunta/resposta ja concluidos dessa conversa, mandados pro servidor
-// em cada nova pergunta pra o COLA manter o contexto (nao reenvia imagens
+// em cada nova pergunta pra o Aristóteles manter o contexto (nao reenvia imagens
 // antigas, so o texto). Reconstruido a partir do localStorage ao carregar.
 let turnosContexto = [];
 const TURNOS_CONTEXTO_LIMITE = 12;
@@ -306,7 +306,7 @@ function adicionarMensagemDigitando() {
 
   const bolha = document.createElement("div");
   bolha.className = "chat-bolha";
-  bolha.innerHTML = '<div class="chat-digitando"><span class="chat-digitando__texto">COLA está pensando</span><span class="chat-digitando__pontos"><span></span><span></span><span></span></span></div>';
+  bolha.innerHTML = '<div class="chat-digitando"><span class="chat-digitando__texto">Aristóteles está pensando</span><span class="chat-digitando__pontos"><span></span><span></span><span></span></span></div>';
 
   linha.appendChild(bolha);
   mensagensEl.appendChild(linha);
