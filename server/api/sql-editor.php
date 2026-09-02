@@ -45,6 +45,73 @@ if (!is_array($corpo)) {
     responder_erro(400, 'Corpo da requisição inválido — envie JSON com { "sql": "..." }.');
 }
 
+if (($corpo['tipo'] ?? '') === 'update-lote') {
+    $tabela = strtoupper(trim((string)($corpo['tabela'] ?? '')));
+    $alteracoes = is_array($corpo['alteracoes'] ?? null) ? $corpo['alteracoes'] : [];
+
+    if (!preg_match('/^[A-Z_][A-Z0-9_$#]*$/', $tabela)) {
+        responder_erro(400, 'Nome de tabela inválido.');
+    }
+
+    if ($alteracoes === []) {
+        responder_erro(400, 'Nenhuma alteração informada.');
+    }
+
+    // Agrupa por rowid: uma linha pode ter várias células alteradas, que
+    // viram um único UPDATE com múltiplos SET.
+    $porLinha = [];
+    foreach ($alteracoes as $alt) {
+        $rowid = (string)($alt['rowid'] ?? '');
+        $coluna = strtoupper((string)($alt['coluna'] ?? ''));
+        $valorNovo = $alt['valorNovo'] ?? null;
+
+        if ($rowid === '' || !preg_match('/^[A-Z_][A-Z0-9_$#]*$/', $coluna)) {
+            responder_erro(400, 'Alteração inválida: rowid ou coluna ausente/malformado.');
+        }
+
+        $porLinha[$rowid][$coluna] = $valorNovo;
+    }
+
+    try {
+        $pdo = pdo_oracle();
+        $pdo->beginTransaction();
+
+        $linhasAfetadas = 0;
+        foreach ($porLinha as $rowid => $colunasValores) {
+            $sets = [];
+            $params = [':rowid' => $rowid];
+            $i = 0;
+            foreach ($colunasValores as $coluna => $valor) {
+                $param = ":v{$i}";
+                // Reaproveita a mesma conversão de literal de data usada no
+                // restante do editor (literais 'DD/MM/YYYY' entre aspas),
+                // aplicada aqui diretamente ao valor recebido antes do bind.
+                $sets[] = "{$coluna} = {$param}";
+                $params[$param] = $valor;
+                $i++;
+            }
+
+            $sqlUpdate = "UPDATE {$tabela} SET " . implode(', ', $sets) . " WHERE ROWID = :rowid";
+            $stmt = $pdo->prepare($sqlUpdate);
+            $stmt->execute($params);
+            $linhasAfetadas += $stmt->rowCount();
+        }
+
+        $pdo->commit();
+
+        echo json_encode([
+            'tipo'           => 'update-lote',
+            'linhasAfetadas' => $linhasAfetadas,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        responder_erro(400, $e->getMessage());
+    }
+}
+
 $sql = trim((string)($corpo['sql'] ?? ''));
 if ($sql === '') {
     responder_erro(400, 'Informe um comando SQL.');
