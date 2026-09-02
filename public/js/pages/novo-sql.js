@@ -535,7 +535,14 @@ const confirmarExecutarBtn = document.getElementById("confirmar-executar-btn");
 let confirmacaoPendenteCallback = null;
 
 function ehSelect(sql) {
-  return /^\s*select\b/i.test(sql);
+  // Ignora comentários (--, /* */) antes de checar, para não pedir
+  // confirmação indevida num SELECT que só tem comentários explicativos
+  // no início (padrão comum nos scripts salvos) — mesmo ajuste feito no
+  // backend (server/api/sql-editor.php, remover_comentarios_sql).
+  const semComentarios = sql
+    .replace(/--.*$/gm, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+  return /^\s*select\b/i.test(semComentarios);
 }
 
 function abrirConfirmacaoGenerica(mensagem, preview, callback) {

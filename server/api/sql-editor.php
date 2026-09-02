@@ -141,19 +141,22 @@ function normalizar_lista(array $linhas): array {
     );
 }
 
+// Remove comentários de linha (--) e de bloco (/* */) de um SQL. Usada
+// tanto para detectar se um comando é SELECT (ignorando comentários que o
+// usuário costuma colocar antes da query, ex: docs/sql/*.sql) quanto para
+// analisar a estrutura da query em detectar_tabela_editavel().
+function remover_comentarios_sql(string $sql): string {
+    $semComentarios = preg_replace('/--.*$/m', '', $sql);
+    $semComentarios = preg_replace('/\/\*.*?\*\//s', '', (string)$semComentarios);
+    return is_string($semComentarios) ? $semComentarios : $sql;
+}
+
 // Detecta se o SELECT é de uma única tabela (sem JOIN, sem múltiplas
 // tabelas separadas por vírgula, sem UNION), condição para liberar edição
 // via ROWID. Conservadora de propósito: prefere recusar um SELECT de
 // tabela única com sintaxe incomum a arriscar detectar errado.
 function detectar_tabela_editavel(string $sql): ?string {
-    // Remove comentários de linha e de bloco antes de analisar, para não
-    // confundir "JOIN"/"UNION" dentro de um comentário com SQL real.
-    $semComentarios = preg_replace('/--.*$/m', '', $sql);
-    $semComentarios = preg_replace('/\/\*.*?\*\//s', '', (string)$semComentarios);
-
-    if (!is_string($semComentarios)) {
-        return null;
-    }
+    $semComentarios = remover_comentarios_sql($sql);
 
     // Só SELECT simples: nenhuma dessas palavras-chave pode aparecer fora
     // de uma string literal. Checagem grosseira (não ignora strings), mas
@@ -269,7 +272,13 @@ function tipos_coluna_por_inferencia(array $colunas, array $linhas): array {
     return $mapa;
 }
 
-$ehSelect = (bool)preg_match('/^\s*select\b/i', $sql);
+// Ignora comentários (--, /* */) antes de decidir se é SELECT — sem isso,
+// um SQL com comentários explicativos no início (padrão comum nos scripts
+// de docs/sql/*.sql) era classificado como "comando" em vez de SELECT,
+// caindo em $pdo->exec($sql) em vez do fluxo de busca/paginação — o Oracle
+// então devolvia ORA-24374 ("define not done before fetch") ao tentar
+// executar um SELECT como se fosse um comando sem resultado.
+$ehSelect = (bool)preg_match('/^\s*select\b/i', remover_comentarios_sql($sql));
 
 try {
     $pdo = pdo_oracle();
