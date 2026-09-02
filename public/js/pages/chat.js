@@ -9,14 +9,13 @@ const enviarBtn = document.getElementById("chat-enviar-btn");
 const anexarBtn = document.getElementById("chat-anexar-btn");
 const anexoInput = document.getElementById("chat-anexo-input");
 const anexoPreview = document.getElementById("chat-anexo-preview");
-const anexoPreviewImg = document.getElementById("chat-anexo-preview-img");
-const anexoRemoverBtn = document.getElementById("chat-anexo-remover");
 const limparBtn = document.getElementById("chat-limpar-btn");
 const limparOverlay = document.getElementById("chat-limpar-overlay");
 const limparCancelarBtn = document.getElementById("chat-limpar-cancelar");
 const limparConfirmarBtn = document.getElementById("chat-limpar-confirmar");
 
-let imagemPendente = null; // { mimeType, data (base64 sem prefixo), previewUrl }
+let imagensPendentes = []; // [{ mimeType, data (base64 sem prefixo), previewUrl }]
+const MAX_IMAGENS_ANEXO = 3;
 
 // Historico da conversa, salvo so nesse navegador (localStorage).
 const HISTORICO_CHAVE = "colaHistoricoConversa";
@@ -59,7 +58,7 @@ function salvarNoHistorico(entrada) {
     // Provavelmente estourou a cota por causa das imagens em base64 —
     // tenta de novo sem elas, pra nao perder o texto da conversa.
     try {
-      const semImagens = limitado.map((m) => ({ ...m, imagem: undefined }));
+      const semImagens = limitado.map((m) => ({ ...m, imagem: undefined, imagens: undefined }));
       localStorage.setItem(HISTORICO_CHAVE, JSON.stringify(semImagens));
     } catch {
       // Sem espaço mesmo; segue sem salvar essa mensagem.
@@ -99,41 +98,84 @@ function comprimirImagem(file) {
   });
 }
 
-function limparAnexo() {
-  imagemPendente = null;
-  anexoPreview.setAttribute("hidden", "");
-  anexoPreviewImg.src = "";
+function renderizarPreviewAnexos() {
+  if (!imagensPendentes.length) {
+    anexoPreview.setAttribute("hidden", "");
+    anexoPreview.innerHTML = "";
+    return;
+  }
+
+  anexoPreview.innerHTML = "";
+  imagensPendentes.forEach((imagem, indice) => {
+    const item = document.createElement("div");
+    item.className = "chat-anexo-item";
+
+    const img = document.createElement("img");
+    img.className = "chat-anexo-preview__img";
+    img.src = imagem.previewUrl;
+    img.alt = "Pré-visualização da imagem anexada";
+
+    const removerBtn = document.createElement("button");
+    removerBtn.className = "chat-anexo-preview__remover";
+    removerBtn.type = "button";
+    removerBtn.setAttribute("aria-label", "Remover imagem");
+    removerBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+    removerBtn.addEventListener("click", () => {
+      imagensPendentes.splice(indice, 1);
+      renderizarPreviewAnexos();
+    });
+
+    item.appendChild(img);
+    item.appendChild(removerBtn);
+    anexoPreview.appendChild(item);
+  });
+
+  anexoPreview.removeAttribute("hidden");
+}
+
+function limparAnexos() {
+  imagensPendentes = [];
   anexoInput.value = "";
+  renderizarPreviewAnexos();
 }
 
 anexarBtn.addEventListener("click", () => anexoInput.click());
 
 anexoInput.addEventListener("change", () => {
-  const arquivo = anexoInput.files?.[0];
-  if (arquivo) definirAnexo(arquivo);
+  adicionarAnexos(Array.from(anexoInput.files || []));
+  anexoInput.value = "";
 });
 
-anexoRemoverBtn.addEventListener("click", limparAnexo);
+// Aceita varios arquivos de uma vez (ate o limite), ignorando o que passar
+// da vaga disponivel.
+async function adicionarAnexos(arquivos) {
+  const vagas = MAX_IMAGENS_ANEXO - imagensPendentes.length;
+  if (vagas <= 0) return;
 
-async function definirAnexo(arquivo) {
-  try {
-    imagemPendente = await comprimirImagem(arquivo);
-    anexoPreviewImg.src = imagemPendente.previewUrl;
-    anexoPreview.removeAttribute("hidden");
-  } catch (erro) {
-    limparAnexo();
+  const selecionados = arquivos.slice(0, vagas);
+  for (const arquivo of selecionados) {
+    try {
+      const imagem = await comprimirImagem(arquivo);
+      imagensPendentes.push(imagem);
+    } catch {
+      // Ignora esse arquivo se nao conseguir ler/comprimir.
+    }
   }
+  renderizarPreviewAnexos();
 }
 
-// Permite colar (Ctrl+V) uma imagem direto no campo de texto — de um print
-// tirado com a tecla PrtScn/ferramenta de recorte, por exemplo.
+// Permite colar (Ctrl+V) uma ou mais imagens direto no campo de texto — de
+// um print tirado com a tecla PrtScn/ferramenta de recorte, por exemplo.
 inputEl.addEventListener("paste", (evento) => {
-  const item = Array.from(evento.clipboardData?.items || []).find((it) => it.type.startsWith("image/"));
-  if (!item) return;
+  const arquivosImagem = Array.from(evento.clipboardData?.items || [])
+    .filter((it) => it.type.startsWith("image/"))
+    .map((it) => it.getAsFile())
+    .filter(Boolean);
+
+  if (!arquivosImagem.length) return;
 
   evento.preventDefault();
-  const arquivo = item.getAsFile();
-  if (arquivo) definirAnexo(arquivo);
+  adicionarAnexos(arquivosImagem);
 });
 
 function escaparHtml(texto) {
@@ -236,7 +278,7 @@ function criarAvatarBot() {
   return avatar;
 }
 
-function adicionarMensagemUsuario(texto, previewUrl) {
+function adicionarMensagemUsuario(texto, previewUrls) {
   vazioEl?.setAttribute("hidden", "");
 
   const linha = document.createElement("div");
@@ -245,13 +287,13 @@ function adicionarMensagemUsuario(texto, previewUrl) {
   const bolha = document.createElement("div");
   bolha.className = "chat-bolha";
 
-  if (previewUrl) {
+  (previewUrls || []).forEach((previewUrl) => {
     const img = document.createElement("img");
     img.className = "chat-bolha__imagem";
     img.src = previewUrl;
     img.alt = "Imagem enviada";
     bolha.appendChild(img);
-  }
+  });
 
   if (texto) {
     const p = document.createElement("div");
@@ -291,7 +333,10 @@ function restaurarHistorico() {
 
   for (const msg of historico) {
     if (msg.papel === "usuario") {
-      adicionarMensagemUsuario(msg.texto, msg.imagem);
+      // Compatibilidade com conversas salvas antes de suportar varias
+      // imagens (formato antigo guardava "imagem" no singular).
+      const imagens = msg.imagens || (msg.imagem ? [msg.imagem] : []);
+      adicionarMensagemUsuario(msg.texto, imagens);
     } else {
       adicionarMensagemBot(msg.texto, msg.papel === "erro");
     }
@@ -315,15 +360,16 @@ function adicionarMensagemDigitando() {
 }
 
 async function enviarPergunta(pergunta) {
-  const imagem = imagemPendente;
-  adicionarMensagemUsuario(pergunta, imagem?.previewUrl);
-  salvarNoHistorico({ papel: "usuario", texto: pergunta, imagem: imagem?.previewUrl || undefined });
+  const imagens = imagensPendentes;
+  const previewUrls = imagens.map((img) => img.previewUrl);
+  adicionarMensagemUsuario(pergunta, previewUrls);
+  salvarNoHistorico({ papel: "usuario", texto: pergunta, imagens: previewUrls.length ? previewUrls : undefined });
 
   inputEl.value = "";
   inputEl.style.height = "auto";
   inputEl.disabled = true;
   enviarBtn.disabled = true;
-  limparAnexo();
+  limparAnexos();
 
   const { linha, bolha } = adicionarMensagemDigitando();
 
@@ -333,7 +379,7 @@ async function enviarPergunta(pergunta) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         pergunta,
-        imagem: imagem ? { mimeType: imagem.mimeType, data: imagem.data } : undefined,
+        imagens: imagens.map((img) => ({ mimeType: img.mimeType, data: img.data })),
         historico: turnosContexto
       })
     });
@@ -366,7 +412,7 @@ async function enviarPergunta(pergunta) {
 formEl.addEventListener("submit", (evento) => {
   evento.preventDefault();
   const pergunta = inputEl.value.trim();
-  if (!pergunta && !imagemPendente) return;
+  if (!pergunta && !imagensPendentes.length) return;
   enviarPergunta(pergunta);
 });
 

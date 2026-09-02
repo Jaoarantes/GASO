@@ -237,8 +237,14 @@ export default async function handler(req, res) {
   }
 
   const pergunta = (req.body?.pergunta || "").trim();
-  const imagem = req.body?.imagem;
-  const temImagem = imagem?.data && imagem?.mimeType;
+
+  // Aceita "imagens" (varias, formato atual) e, por compatibilidade,
+  // "imagem" no singular (formato antigo do front). Limita a 3.
+  const imagensBrutas = Array.isArray(req.body?.imagens)
+    ? req.body.imagens
+    : (req.body?.imagem ? [req.body.imagem] : []);
+  const imagens = imagensBrutas.filter((img) => img?.data && img?.mimeType).slice(0, 3);
+  const temImagem = imagens.length > 0;
 
   if (!pergunta && !temImagem) {
     res.status(400).json({ erro: "Envie uma pergunta ou uma imagem." });
@@ -276,9 +282,9 @@ export default async function handler(req, res) {
       fileData: { mimeType: a.mimeType, fileUri: a.uri }
     }));
 
-    const partesImagem = temImagem
-      ? [{ inlineData: { mimeType: imagem.mimeType, data: imagem.data } }]
-      : [];
+    const partesImagem = imagens.map((img) => ({
+      inlineData: { mimeType: img.mimeType, data: img.data }
+    }));
 
     const instrucaoSistema = "Você é o Aristóteles, assistente de suporte da Base de Soluções da Gasômetro"
       + " Madeiras, especialista no ERP NL Gestão."
@@ -319,8 +325,10 @@ export default async function handler(req, res) {
       ...partesImagem,
       ...partesSolucoes,
       {
-        text: (temImagem ? "O usuário anexou uma imagem (pode ser um print de tela, erro ou tabela) — analise-a com atenção e cruze com os documentos antes de responder.\n\n" : "")
-          + (pergunta || "Descreva o que você vê na imagem anexada e ajude com base nela.")
+        text: (temImagem
+          ? `O usuário anexou ${imagens.length > 1 ? `${imagens.length} imagens` : "uma imagem"} (podem ser prints de tela, erros ou tabelas) — analise cada uma com atenção e cruze com os documentos antes de responder.\n\n`
+          : "")
+          + (pergunta || "Descreva o que você vê na(s) imagem(ns) anexada(s) e ajude com base nela(s).")
       }
     ]);
 

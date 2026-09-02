@@ -2990,8 +2990,14 @@ select.publicacao-select {
 }
 
 .chat-anexo-preview {
-  position: relative;
+  display: flex;
+  gap: 10px;
   align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.chat-anexo-item {
+  position: relative;
   flex-shrink: 0;
 }
 
