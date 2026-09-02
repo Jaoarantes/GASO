@@ -10,6 +10,7 @@ const ICONE_POST_CHANGES = '<svg viewBox="0 0 24 24" fill="none" stroke="current
 const ICONE_EXPORT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></svg>';
 const ICONE_EXPANDIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
 const ICONE_RECOLHER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4a2 2 0 0 1-2 2H3"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/><path d="M9 21v-4a2 2 0 0 0-2-2H3"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/></svg>';
+const ICONE_LAPIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 
 function configurada() {
   return Boolean(TABELAS_API_URL && TABELAS_API_KEY);
@@ -27,6 +28,13 @@ const scriptBtn = document.getElementById("sql-toolbar-script-btn");
 
 let estadoResultado = null; // { sql, colunas, tiposColuna, linhas, pagina, temProximaPagina, editavel, tabela }
 let controladorMenuExport = null; // AbortController do listener global de fechar o menu de export
+
+let modoEdicao = false;
+let pendenciasEdicao = new Map(); // chave: `${rowid}::${coluna}` -> { rowid, coluna, valorNovo, valorAntigo }
+
+function chavePendencia(rowid, coluna) {
+  return `${rowid}::${coluna}`;
+}
 
 const editor = window.CodeMirror.fromTextArea(editorArea, {
   mode: "text/x-sql",
@@ -47,6 +55,25 @@ function celulaVazia() {
   return td;
 }
 
+function criarAreaErroPostChanges() {
+  const el = document.createElement("p");
+  el.className = "sql-resultado-erro sql-resultado-erro-post";
+  el.id = "resultado-post-erro";
+  el.hidden = true;
+  return el;
+}
+
+function mostrarErroPostChanges(texto) {
+  const el = document.getElementById("resultado-post-erro");
+  if (!el) return;
+  if (texto) {
+    el.textContent = texto;
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
+}
+
 function criarBarraFerramentas() {
   const barra = document.createElement("div");
   barra.className = "sql-resultado-barra";
@@ -60,7 +87,8 @@ function criarBarraFerramentas() {
     cadeadoBtn.disabled = true;
     cadeadoBtn.title = "Edição disponível apenas para SELECT de uma única tabela.";
   } else {
-    cadeadoBtn.title = "Habilitar edição";
+    cadeadoBtn.title = modoEdicao ? "Desabilitar edição" : "Habilitar edição";
+    cadeadoBtn.innerHTML = modoEdicao ? ICONE_CADEADO_ABERTO : ICONE_CADEADO_FECHADO;
   }
 
   const proximaBtn = document.createElement("button");
@@ -84,7 +112,6 @@ function criarBarraFerramentas() {
   postBtn.id = "resultado-post-btn";
   postBtn.title = "Gravar alterações";
   postBtn.innerHTML = ICONE_POST_CHANGES;
-  postBtn.disabled = true;
 
   const exportWrapper = document.createElement("div");
   exportWrapper.className = "sql-resultado-export-wrapper";
@@ -169,6 +196,31 @@ function criarBarraFerramentas() {
   barra.appendChild(exportWrapper);
   barra.appendChild(expandirBtn);
 
+  cadeadoBtn.addEventListener("click", () => {
+    if (!estadoResultado.editavel) return;
+    modoEdicao = !modoEdicao;
+    cadeadoBtn.innerHTML = modoEdicao ? ICONE_CADEADO_ABERTO : ICONE_CADEADO_FECHADO;
+    cadeadoBtn.title = modoEdicao ? "Desabilitar edição" : "Habilitar edição";
+    atualizarTabela();
+  });
+
+  postBtn.addEventListener("click", () => {
+    if (pendenciasEdicao.size === 0) return;
+
+    const alteracoes = [...pendenciasEdicao.values()];
+    const preview = alteracoes
+      .map((a) => `${estadoResultado.tabela}.${a.coluna} (rowid ${a.rowid}): "${a.valorAntigo}" → "${a.valorNovo}"`)
+      .join("\n");
+
+    abrirConfirmacaoGenerica(
+      `Isso vai gravar ${alteracoes.length} alteração(ões) na tabela ${estadoResultado.tabela}, no banco de produção. Essa ação não pode ser desfeita.`,
+      preview,
+      () => enviarPostChanges(alteracoes)
+    );
+  });
+
+  postBtn.disabled = pendenciasEdicao.size === 0;
+
   return barra;
 }
 
@@ -243,10 +295,34 @@ function construirTabela() {
   linhasExibidas = linhasOrdenadas();
   linhasExibidas.forEach((linha) => {
     const tr = document.createElement("tr");
+    const rowid = linha.gaso_rowid;
     estadoResultado.colunas.forEach((c) => {
       const td = document.createElement("td");
-      td.textContent = linha[c] ?? "";
       td.dataset.coluna = c;
+
+      const chave = chavePendencia(rowid, c);
+      const pendencia = pendenciasEdicao.get(chave);
+      const valorAtual = pendencia ? pendencia.valorNovo : (linha[c] ?? "");
+
+      const span = document.createElement("span");
+      span.className = "celula-valor";
+      span.textContent = valorAtual;
+      td.appendChild(span);
+
+      if (pendencia) {
+        td.classList.add("celula-alterada");
+      }
+
+      if (modoEdicao && estadoResultado.editavel && rowid) {
+        const lapis = document.createElement("button");
+        lapis.type = "button";
+        lapis.className = "celula-editar-btn";
+        lapis.title = "Editar";
+        lapis.innerHTML = ICONE_LAPIS;
+        lapis.addEventListener("click", () => iniciarEdicaoCelula(td, rowid, c, valorAtual));
+        td.appendChild(lapis);
+      }
+
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
@@ -262,6 +338,82 @@ function atualizarTabela() {
   if (!wrapper) return;
   wrapper.innerHTML = "";
   wrapper.appendChild(construirTabela());
+}
+
+function iniciarEdicaoCelula(td, rowid, coluna, valorAtual) {
+  td.innerHTML = "";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "celula-editar-input";
+  input.value = valorAtual;
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  const confirmar = () => {
+    const valorNovo = input.value;
+    const chave = chavePendencia(rowid, coluna);
+    const valorOriginal = linhasExibidas.find((l) => l.gaso_rowid === rowid)?.[coluna] ?? "";
+
+    if (valorNovo === String(valorOriginal)) {
+      pendenciasEdicao.delete(chave);
+    } else {
+      pendenciasEdicao.set(chave, { rowid, coluna, valorNovo, valorAntigo: valorOriginal });
+    }
+    atualizarBotaoPostChanges();
+    atualizarTabela();
+  };
+
+  const cancelar = () => {
+    atualizarTabela();
+  };
+
+  input.addEventListener("blur", confirmar);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      input.blur();
+    } else if (event.key === "Escape") {
+      input.removeEventListener("blur", confirmar);
+      cancelar();
+    }
+  });
+}
+
+function atualizarBotaoPostChanges() {
+  const postBtn = document.getElementById("resultado-post-btn");
+  if (postBtn) postBtn.disabled = pendenciasEdicao.size === 0;
+}
+
+async function enviarPostChanges(alteracoes) {
+  mostrarErroPostChanges(null);
+
+  try {
+    const resposta = await fetch(urlDoEditor(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": TABELAS_API_KEY
+      },
+      body: JSON.stringify({
+        tipo: "update-lote",
+        tabela: estadoResultado.tabela,
+        alteracoes: alteracoes.map(({ rowid, coluna, valorNovo }) => ({ rowid, coluna, valorNovo }))
+      })
+    });
+
+    const dados = await resposta.json();
+    if (!resposta.ok) {
+      throw new Error(dados.erro || `Resposta ${resposta.status}`);
+    }
+
+    pendenciasEdicao.clear();
+    await executar(estadoResultado.sql, { pagina: estadoResultado.pagina });
+  } catch (erro) {
+    console.error("Erro ao gravar alterações:", erro);
+    mostrarErroPostChanges(erro.message || "Não foi possível gravar as alterações.");
+  }
 }
 
 function mostrarTabelaResultado(dados) {
@@ -286,6 +438,9 @@ function mostrarTabelaResultado(dados) {
 
   const barra = criarBarraFerramentas();
   resultadoEl.appendChild(barra);
+
+  const erroPost = criarAreaErroPostChanges();
+  resultadoEl.appendChild(erroPost);
 
   const wrapper = document.createElement("div");
   wrapper.className = "colunas-tabela-wrapper sql-resultado-tabela-wrapper";
@@ -347,22 +502,22 @@ const confirmarPreviewEl = document.getElementById("confirmar-preview");
 const confirmarCancelarBtn = document.getElementById("confirmar-cancelar-btn");
 const confirmarExecutarBtn = document.getElementById("confirmar-executar-btn");
 
-let sqlPendente = null;
+let confirmacaoPendenteCallback = null;
 
 function ehSelect(sql) {
   return /^\s*select\b/i.test(sql);
 }
 
-function abrirConfirmacao(sql) {
-  sqlPendente = sql;
-  confirmarMensagemEl.textContent = "Isso vai executar este comando no banco de produção. Essa ação não pode ser desfeita.";
-  confirmarPreviewEl.textContent = sql;
+function abrirConfirmacaoGenerica(mensagem, preview, callback) {
+  confirmacaoPendenteCallback = callback;
+  confirmarMensagemEl.textContent = mensagem;
+  confirmarPreviewEl.textContent = preview;
   confirmarOverlay.hidden = false;
 }
 
 function fecharConfirmacao() {
   confirmarOverlay.hidden = true;
-  sqlPendente = null;
+  confirmacaoPendenteCallback = null;
 }
 
 confirmarCancelarBtn.addEventListener("click", fecharConfirmacao);
@@ -370,10 +525,18 @@ confirmarOverlay.addEventListener("click", (event) => {
   if (event.target === confirmarOverlay) fecharConfirmacao();
 });
 confirmarExecutarBtn.addEventListener("click", () => {
-  const sql = sqlPendente;
+  const callback = confirmacaoPendenteCallback;
   fecharConfirmacao();
-  if (sql) executar(sql);
+  if (callback) callback();
 });
+
+function abrirConfirmacao(sql) {
+  abrirConfirmacaoGenerica(
+    "Isso vai executar este comando no banco de produção. Essa ação não pode ser desfeita.",
+    sql,
+    () => executar(sql)
+  );
+}
 
 executarBtn.addEventListener("click", () => {
   const sql = editor.getValue().trim();

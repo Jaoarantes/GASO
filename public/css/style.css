@@ -46,6 +46,8 @@
   --tabela-sistema-fundo: #fbe9d8;
   --tabela-diversos-cor: #c2410c;
   --tabela-diversos-fundo: #fde4d3;
+
+  --cor-aviso-fundo: #fff6d8;
 }
 
 [data-theme="dark"] {
@@ -87,6 +89,8 @@
   --tabela-sistema-fundo: rgba(227, 164, 101, 0.14);
   --tabela-diversos-cor: #fb9a67;
   --tabela-diversos-fundo: rgba(251, 154, 103, 0.14);
+
+  --cor-aviso-fundo: rgba(224, 165, 72, 0.22);
 }
 
 html[data-sidebar="colapsada"] {
@@ -2569,6 +2573,48 @@ select.publicacao-select {
 .sql-resultado-erro {
   font-size: 13px;
   color: var(--cor-erro);
+}
+
+.celula-valor {
+  margin-right: 6px;
+}
+
+.celula-alterada {
+  background-color: var(--cor-aviso-fundo);
+}
+
+.celula-editar-btn {
+  border: none;
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--cor-texto-fraco);
+  vertical-align: middle;
+}
+
+.celula-editar-btn:hover {
+  color: var(--cor-primaria);
+}
+
+.celula-editar-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.celula-editar-input {
+  width: 100%;
+  font: inherit;
+  border: 1px solid var(--cor-primaria);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.sql-resultado-erro-post {
+  margin-top: 8px;
+}
+
+.sql-resultado-erro-post[hidden] {
+  display: none;
 }
 
 .sql-resultado-barra {
