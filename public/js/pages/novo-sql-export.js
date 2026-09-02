@@ -44,16 +44,67 @@ function formatarDataBR(valor, comHora) {
 
 // ── Excel ────────────────────────────────────────────────────────────────
 
-function colunaTemDecimal(linhas, coluna) {
-  return linhas.some((linha) => {
-    const v = valorOuVazio(linha, coluna);
-    return typeof v === "number" && !Number.isInteger(v);
-  });
+function colunaTemDecimal(valoresConvertidos) {
+  return valoresConvertidos.some((v) => typeof v === "number" && !Number.isInteger(v));
 }
 
+// Converte um valor de célula (sempre string, ou "" para vazio — ver
+// `valorOuVazio`) pro tipo nativo JS correto de acordo com `tipo`, vindo de
+// `tiposColuna`. O backend usa driver PDO ODBC do Oracle, que não converte
+// tipos nativamente — tudo chega como string/texto até o backend indicar o
+// tipo real separadamente. Sem essa conversão, toda célula do XLSX vira tipo
+// texto (`t:"s"`), porque o SheetJS decide o tipo de cada célula pelo
+// `typeof` do valor JS recebido, não pelo `tiposColuna`.
+function valorParaTipoNativo(valor, tipo) {
+  if (valor === "") return "";
+
+  if (tipo === "numero") {
+    const numero = Number(valor);
+    return Number.isNaN(numero) ? valor : numero;
+  }
+
+  if (tipo === "data") {
+    // Constrói o Date a partir dos componentes ano/mes/dia/hora/min/seg via
+    // regex, e não via `new Date(string)` direto — o SheetJS trata datas de
+    // planilha como "data local" sem timezone, e `new Date("2017-03-29")`
+    // (sem hora) é interpretado como UTC pelo JS, o que pode deslocar o dia
+    // exibido dependendo do fuso local do navegador.
+    const match = String(valor).match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?/);
+    if (!match) return valor;
+    const [, ano, mes, dia, h, m, s] = match;
+    const data = new Date(Number(ano), Number(mes) - 1, Number(dia), Number(h || 0), Number(m || 0), Number(s || 0));
+    return Number.isNaN(data.getTime()) ? valor : data;
+  }
+
+  return valor;
+}
+
+// SheetJS Community Edition (0.18.5, a versão carregada via CDN neste
+// projeto) não aplica estilo de célula (`cell.s`: fonte, negrito) nem
+// `!freeze` (freeze pane) ao escrever o arquivo — esses recursos só existem
+// na versão Pro (paga). O código abaixo que monta `celula.s` e
+// `planilha["!freeze"]` fica registrado para documentar a intenção original
+// (replicar o visual do export do PL/SQL Developer), mas não tem efeito
+// visual no .xlsx gerado — não tentar "consertar" isso sem trocar de lib.
+//
+// O que REALMENTE funciona, e é o ganho desta função: formato numérico
+// (0/0.00) e formato de data (M/d/yyyy[ h:mm:ss AM/PM]) via `cell.z`, que só
+// se aplicam quando a célula é number/Date nativo — por isso os valores são
+// convertidos com `valorParaTipoNativo` antes de montar `dados`, em vez de
+// usar a string crua de `valorOuVazio`. Isso também deixa os números
+// utilizáveis em fórmulas/cálculos no Excel, em vez de texto parecido com
+// número.
 export function exportarExcel({ colunas, tiposColuna, linhas }) {
   const cabecalhos = colunas.map((c) => c.toUpperCase());
-  const dados = [cabecalhos, ...linhas.map((linha) => colunas.map((c) => valorOuVazio(linha, c)))];
+  const dados = [
+    cabecalhos,
+    ...linhas.map((linha) =>
+      colunas.map((c) => {
+        const tipo = tiposColuna[c.toLowerCase()] || "texto";
+        return valorParaTipoNativo(valorOuVazio(linha, c), tipo);
+      })
+    ),
+  ];
   const planilha = window.XLSX.utils.aoa_to_sheet(dados);
 
   planilha["!cols"] = colunas.map(() => ({ wch: 16 }));
@@ -70,7 +121,8 @@ export function exportarExcel({ colunas, tiposColuna, linhas }) {
 
     let formatoNumero = null;
     if (tipo === "numero") {
-      formatoNumero = colunaTemDecimal(linhas, coluna) ? "0.00" : "0";
+      const valoresConvertidos = dados.slice(1).map((linha) => linha[indice]);
+      formatoNumero = colunaTemDecimal(valoresConvertidos) ? "0.00" : "0";
     } else if (tipo === "data") {
       const comHora = linhas.some((linha) => pareceDataHora(valorOuVazio(linha, coluna)));
       formatoNumero = comHora ? "M/d/yyyy h:mm:ss AM/PM" : "M/d/yyyy";
