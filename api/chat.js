@@ -159,7 +159,7 @@ function mensagemErroAmigavel(erro) {
     return "O limite de uso gratuito do Gemini foi atingido nesse minuto. Espera um pouco e tenta de novo.";
   }
   if (status === 503) {
-    return "O Gemini está sobrecarregado no momento (instabilidade do lado do Google, não é nada daqui). Tenta de novo em alguns segundos.";
+    return "O Gemini está sobrecarregado no momento (instabilidade do lado do Google, não é nada daqui). Já tentei de novo automaticamente algumas vezes e continua fora — tenta de novo em alguns minutos.";
   }
   if (typeof status === "number" && status >= 500) {
     return `O servidor do Gemini teve um problema (erro ${status}). Tenta de novo em instantes.`;
@@ -169,6 +169,25 @@ function mensagemErroAmigavel(erro) {
   }
 
   return "Não foi possível responder agora.";
+}
+
+function esperar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Tenta de novo automaticamente quando o Gemini devolve 503 (sobrecarregado
+// no momento) — costuma ser um pico curto que passa em poucos segundos.
+// Nao tenta de novo em outros erros (ex: 429 de cota, que so pioraria).
+async function enviarComRetry(chat, partes, tentativas = 3) {
+  for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+    try {
+      return await chat.sendMessage(partes);
+    } catch (erro) {
+      const ultimaTentativa = tentativa === tentativas;
+      if (erro?.status !== 503 || ultimaTentativa) throw erro;
+      await esperar(tentativa * 2000); // 2s, depois 4s
+    }
+  }
 }
 
 async function extrairTextoDocx(buffer) {
@@ -299,7 +318,7 @@ export default async function handler(req, res) {
       + " Se a resposta não estiver nos documentos mesmo depois dessa revisão cuidadosa, diga"
       + " claramente que não encontrou essa informação, em vez de inventar."
       + " Essa é uma conversa contínua — leve em conta as perguntas e respostas anteriores pra"
-      + " entender o contexto (ex.: \"e o segundo passo?\", \"detalha mais isso\"), sem esquecer"
+      +" entender o contexto (ex.: \"e o segundo passo?\", \"detalha mais isso\"), sem esquecer"
       + " do que já foi dito antes."
       + " Quando a pergunta atual vier acompanhada de soluções já cadastradas na Base de Soluções"
       + " do site (marcadas como \"SOLUÇÕES JÁ CADASTRADAS...\"), priorize essa informação — foi"
@@ -321,7 +340,7 @@ export default async function handler(req, res) {
       ? [{ text: "=== SOLUÇÕES JÁ CADASTRADAS NO SITE RELACIONADAS A ESSA PERGUNTA ===\n\n" + solucoesRelevantes.join("\n\n---\n\n") }]
       : [];
 
-    const resultado = await chat.sendMessage([
+    const resultado = await enviarComRetry(chat, [
       ...partesImagem,
       ...partesSolucoes,
       {
