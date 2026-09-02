@@ -12,6 +12,9 @@ const anexoPreview = document.getElementById("chat-anexo-preview");
 const anexoPreviewImg = document.getElementById("chat-anexo-preview-img");
 const anexoRemoverBtn = document.getElementById("chat-anexo-remover");
 const limparBtn = document.getElementById("chat-limpar-btn");
+const limparOverlay = document.getElementById("chat-limpar-overlay");
+const limparCancelarBtn = document.getElementById("chat-limpar-cancelar");
+const limparConfirmarBtn = document.getElementById("chat-limpar-confirmar");
 
 let imagemPendente = null; // { mimeType, data (base64 sem prefixo), previewUrl }
 
@@ -380,13 +383,25 @@ inputEl.addEventListener("input", () => {
 });
 
 limparBtn.addEventListener("click", () => {
-  if (!confirm("Limpar toda a conversa com o COLA? Essa ação não pode ser desfeita.")) return;
+  limparOverlay.hidden = false;
+});
 
+function fecharConfirmarLimpeza() {
+  limparOverlay.hidden = true;
+}
+
+limparCancelarBtn.addEventListener("click", fecharConfirmarLimpeza);
+limparOverlay.addEventListener("click", (evento) => {
+  if (evento.target === limparOverlay) fecharConfirmarLimpeza();
+});
+
+limparConfirmarBtn.addEventListener("click", () => {
   localStorage.removeItem(HISTORICO_CHAVE);
   turnosContexto = [];
   mensagensEl.innerHTML = "";
   mensagensEl.appendChild(vazioEl);
   vazioEl.removeAttribute("hidden");
+  fecharConfirmarLimpeza();
 });
 
 restaurarHistorico();
