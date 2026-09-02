@@ -480,23 +480,48 @@ function mostrarTabelaResultado(dados) {
   resultadoEl.appendChild(wrapper);
 }
 
+// Algumas tabelas (ex: logs de auditoria grandes) fazem consultas legitimamente
+// lentas — 5 minutos alinhado com o set_time_limit(300) do backend
+// (server/api/sql-editor.php), pra não abortar no frontend antes do servidor.
+const TIMEOUT_EXECUCAO_MS = 5 * 60 * 1000;
+
 async function executarNoBackend(sql, opcoes = {}) {
-  const resposta = await fetch(urlDoEditor(), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": TABELAS_API_KEY
-    },
-    body: JSON.stringify({ sql, ...opcoes })
-  });
+  const controlador = new AbortController();
+  const timeoutId = setTimeout(() => controlador.abort(), TIMEOUT_EXECUCAO_MS);
 
-  const dados = await resposta.json();
+  try {
+    const resposta = await fetch(urlDoEditor(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": TABELAS_API_KEY
+      },
+      body: JSON.stringify({ sql, ...opcoes }),
+      signal: controlador.signal
+    });
 
-  if (!resposta.ok) {
-    throw new Error(dados.erro || `Resposta ${resposta.status}`);
+    const dados = await resposta.json();
+
+    if (!resposta.ok) {
+      throw new Error(dados.erro || `Resposta ${resposta.status}`);
+    }
+
+    return dados;
+  } catch (erro) {
+    if (erro.name === "AbortError") {
+      throw new Error("A consulta demorou mais de 5 minutos e foi cancelada.");
+    }
+    throw erro;
+  } finally {
+    clearTimeout(timeoutId);
   }
+}
 
-  return dados;
+function formatarTempoDecorrido(ms) {
+  const segundosTotais = Math.floor(ms / 1000);
+  const minutos = Math.floor(segundosTotais / 60);
+  const segundos = segundosTotais % 60;
+  return minutos > 0 ? `${minutos}m ${segundos}s` : `${segundos}s`;
 }
 
 async function executar(sql, opcoes = {}) {
@@ -506,7 +531,12 @@ async function executar(sql, opcoes = {}) {
   }
 
   executarBtn.disabled = true;
-  mostrarMensagemResultado("Executando...", "status");
+
+  const inicio = Date.now();
+  mostrarMensagemResultado("Executando... (0s)", "status");
+  const intervaloContador = setInterval(() => {
+    mostrarMensagemResultado(`Executando... (${formatarTempoDecorrido(Date.now() - inicio)})`, "status");
+  }, 1000);
 
   try {
     const dados = await executarNoBackend(sql, opcoes);
@@ -521,6 +551,7 @@ async function executar(sql, opcoes = {}) {
     console.error("Erro ao executar SQL:", erro);
     mostrarMensagemResultado(erro.message || "Não foi possível executar o comando.", "erro");
   } finally {
+    clearInterval(intervaloContador);
     executarBtn.disabled = false;
   }
 }
