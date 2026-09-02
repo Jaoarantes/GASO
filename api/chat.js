@@ -7,10 +7,15 @@
 //      e sobe esse texto pro Gemini File API — guarda a referencia devolvida
 //      (expira em ~48h) pra reusar nas proximas perguntas, sem reprocessar
 //      tudo de novo.
-//   2. Chama o Gemini em modo chat (startChat), com os 5 arquivos referenciados,
+//   2. Busca na tabela "solucoes" do Supabase as soluções já cadastradas no
+//      site com maior relevância pra pergunta (mesmo criterio de pontuação
+//      usado na busca da pagina Inicio) — só as mais relevantes, não o banco
+//      inteiro, pra economizar tokens.
+//   3. Chama o Gemini em modo chat (startChat), com os 5 arquivos referenciados,
 //      o historico de perguntas/respostas anteriores dessa conversa (mandado
-//      pelo navegador) e a pergunta atual — assim ele mantem o contexto entre
-//      uma pergunta e outra em vez de responder cada uma isolada.
+//      pelo navegador), as soluções relevantes encontradas e a pergunta atual
+//      — assim ele mantem o contexto entre uma pergunta e outra em vez de
+//      responder cada uma isolada.
 //
 // Variaveis de ambiente esperadas (Vercel > Settings > Environment Variables,
 // nunca commitadas):
@@ -48,6 +53,100 @@ const DOCUMENTOS = [
 
 function supabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+}
+
+// --- Soluções cadastradas no site (tabela "solucoes" do Supabase) ---
+// Mesmo criterio de relevancia usado na busca da pagina Inicio
+// (public/js/pages/inicio.js), pra so mandar pro Gemini as soluções que tem
+// a ver com a pergunta em vez do banco inteiro (economiza tokens).
+
+const TAMANHO_MINIMO_TERMO_BUSCA = 3;
+const MAX_SOLUCOES_NO_CONTEXTO = 5;
+
+function normalizarTextoBusca(texto) {
+  return (texto || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+function pontuarSolucaoNaBusca(solucao, termos, termoCompleto) {
+  const nome = normalizarTextoBusca(solucao.titulo);
+  const descricao = normalizarTextoBusca(solucao.erro);
+  const outros = normalizarTextoBusca([
+    solucao.categoria, solucao.modulo,
+    ...(Array.isArray(solucao.sintomas) ? solucao.sintomas : []),
+    ...(Array.isArray(solucao.tabelas_campos) ? solucao.tabelas_campos : [])
+  ].filter(Boolean).join(" "));
+
+  let pontuacao = 0;
+  termos.forEach((termo) => {
+    if (nome.includes(termo)) pontuacao += 3;
+    if (descricao.includes(termo)) pontuacao += 2;
+    if (outros.includes(termo)) pontuacao += 1;
+  });
+
+  if (pontuacao > 0) {
+    if (nome === termoCompleto) pontuacao += 1000;
+    else if (nome.startsWith(termoCompleto)) pontuacao += 500;
+    else if (nome.includes(termoCompleto)) pontuacao += 100;
+  }
+
+  return pontuacao;
+}
+
+function formatarSolucaoParaContexto(s) {
+  const linhas = [`### ${s.titulo || "Sem título"} (${s.tipo || "tipo não informado"})`];
+
+  if (s.categoria) linhas.push(`Categoria: ${s.categoria}`);
+  if (s.modulo) linhas.push(`Caminho/Módulo no ERP: ${s.modulo}`);
+  if (s.criticidade) linhas.push(`Prioridade: ${s.criticidade}`);
+  if (s.codigo_erro) linhas.push(`Código do erro: ${s.codigo_erro}`);
+  if (s.erro) linhas.push(`Descrição: ${s.erro}`);
+  if (Array.isArray(s.sintomas) && s.sintomas.length) linhas.push(`Sintomas/palavras-chave: ${s.sintomas.join(", ")}`);
+  if (Array.isArray(s.tabelas_campos) && s.tabelas_campos.length) linhas.push(`Tabelas/campos relacionados: ${s.tabelas_campos.join(", ")}`);
+  if (s.codigo) linhas.push(`Código/Script:\n${s.codigo}`);
+
+  if (Array.isArray(s.parametros) && s.parametros.length) {
+    linhas.push("Parâmetros:");
+    s.parametros.forEach((p) => linhas.push(`- ${p.nome}: ${p.descricao}`));
+  }
+
+  if (Array.isArray(s.passos) && s.passos.length) {
+    linhas.push("Passo a passo cadastrado:");
+    [...s.passos]
+      .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+      .forEach((p) => linhas.push(`${p.ordem}. ${p.texto}`));
+  }
+
+  if (s.resultado_esperado) linhas.push(`Resultado esperado: ${s.resultado_esperado}`);
+  if (s.autor) linhas.push(`Cadastrado por: ${s.autor}`);
+
+  return linhas.join("\n");
+}
+
+// Busca no Supabase as soluções cadastradas com maior relevância pra
+// pergunta atual (mesma pontuação da busca da pagina Inicio) e devolve as
+// N mais relevantes ja formatadas em texto, prontas pra entrar no prompt.
+async function buscarSolucoesRelevantes(supabase, pergunta) {
+  if (!pergunta) return [];
+
+  const termoNormalizado = normalizarTextoBusca(pergunta);
+  const termos = termoNormalizado.split(/\s+/).filter((t) => t.length >= TAMANHO_MINIMO_TERMO_BUSCA);
+  if (!termos.length) return [];
+
+  const { data, error } = await supabase
+    .from("solucoes")
+    .select("titulo,tipo,categoria,modulo,criticidade,codigo_erro,erro,sintomas,tabelas_campos,codigo,parametros,passos,resultado_esperado,autor");
+
+  if (error || !data) return [];
+
+  return data
+    .map((solucao) => ({ solucao, pontuacao: pontuarSolucaoNaBusca(solucao, termos, termoNormalizado) }))
+    .filter((item) => item.pontuacao > 0)
+    .sort((a, b) => b.pontuacao - a.pontuacao)
+    .slice(0, MAX_SOLUCOES_NO_CONTEXTO)
+    .map((item) => formatarSolucaoParaContexto(item.solucao));
 }
 
 async function extrairTextoDocx(buffer) {
@@ -138,9 +237,10 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const fileManager = new GoogleAIFileManager(GEMINI_API_KEY);
 
-    const arquivos = await Promise.all(
-      DOCUMENTOS.map((doc) => obterArquivoGemini(fileManager, supabase, doc))
-    );
+    const [arquivos, solucoesRelevantes] = await Promise.all([
+      Promise.all(DOCUMENTOS.map((doc) => obterArquivoGemini(fileManager, supabase, doc))),
+      buscarSolucoesRelevantes(supabase, pergunta)
+    ]);
 
     const model = genAI.getGenerativeModel({
       model: MODELO,
@@ -172,7 +272,11 @@ export default async function handler(req, res) {
       + " claramente que não encontrou essa informação, em vez de inventar."
       + " Essa é uma conversa contínua — leve em conta as perguntas e respostas anteriores pra"
       + " entender o contexto (ex.: \"e o segundo passo?\", \"detalha mais isso\"), sem esquecer"
-      + " do que já foi dito antes.";
+      + " do que já foi dito antes."
+      + " Quando a pergunta atual vier acompanhada de soluções já cadastradas na Base de Soluções"
+      + " do site (marcadas como \"SOLUÇÕES JÁ CADASTRADAS...\"), priorize essa informação — foi"
+      + " escrita por alguém da equipe descrevendo um caso real, então normalmente é mais precisa"
+      + " e específica que os documentos gerais do ERP. Cite o título da solução usada.";
 
     const chat = model.startChat({
       history: [
@@ -185,8 +289,13 @@ export default async function handler(req, res) {
       ]
     });
 
+    const partesSolucoes = solucoesRelevantes.length
+      ? [{ text: "=== SOLUÇÕES JÁ CADASTRADAS NO SITE RELACIONADAS A ESSA PERGUNTA ===\n\n" + solucoesRelevantes.join("\n\n---\n\n") }]
+      : [];
+
     const resultado = await chat.sendMessage([
       ...partesImagem,
+      ...partesSolucoes,
       {
         text: (temImagem ? "O usuário anexou uma imagem (pode ser um print de tela, erro ou tabela) — analise-a com atenção e cruze com os documentos antes de responder.\n\n" : "")
           + (pergunta || "Descreva o que você vê na imagem anexada e ajude com base nela.")
