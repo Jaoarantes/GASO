@@ -149,6 +149,28 @@ async function buscarSolucoesRelevantes(supabase, pergunta) {
     .map((item) => formatarSolucaoParaContexto(item.solucao));
 }
 
+// Traduz o erro tecnico (jogado no log da Vercel, com todo o detalhe) numa
+// mensagem curta e util pro usuario ver direto no chat, sem precisar abrir
+// o painel da Vercel pra entender o que aconteceu.
+function mensagemErroAmigavel(erro) {
+  const status = erro?.status;
+
+  if (status === 429) {
+    return "O limite de uso gratuito do Gemini foi atingido nesse minuto. Espera um pouco e tenta de novo.";
+  }
+  if (status === 503) {
+    return "O Gemini está sobrecarregado no momento (instabilidade do lado do Google, não é nada daqui). Tenta de novo em alguns segundos.";
+  }
+  if (typeof status === "number" && status >= 500) {
+    return `O servidor do Gemini teve um problema (erro ${status}). Tenta de novo em instantes.`;
+  }
+  if (typeof erro?.message === "string" && erro.message.startsWith("Falha ao baixar")) {
+    return "Não consegui acessar um dos documentos do ERP agora. Tenta de novo em instantes.";
+  }
+
+  return "Não foi possível responder agora.";
+}
+
 async function extrairTextoDocx(buffer) {
   const resultado = await mammoth.extractRawText({ buffer });
   return resultado.value;
@@ -306,6 +328,6 @@ export default async function handler(req, res) {
     res.status(200).json({ resposta });
   } catch (erro) {
     console.error("Erro no chat:", erro);
-    res.status(500).json({ erro: "Não foi possível responder agora." });
+    res.status(500).json({ erro: mensagemErroAmigavel(erro) });
   }
 }
