@@ -178,14 +178,75 @@ try {
     responder_erro(500, 'Erro ao conectar no banco de dados.');
 }
 
+const TAMANHO_PAGINA = 100;
+
+// Remove um FOR UPDATE de fim de statement, se houver — não faz sentido
+// dentro da subquery paginada e o lock de linha não é necessário para o
+// fluxo de batch update via ROWID.
+function remover_for_update(string $sql): string {
+    return (string)preg_replace('/\s+FOR\s+UPDATE\s*$/i', '', trim($sql));
+}
+
 try {
     if ($ehSelect) {
-        $linhas = normalizar_lista($pdo->query($sql)->fetchAll());
-        $colunas = $linhas === [] ? [] : array_keys($linhas[0]);
+        $sqlBase = remover_for_update($sql);
+        $tabelaEditavel = detectar_tabela_editavel($sqlBase);
+
+        $sqlComRowid = $tabelaEditavel !== null
+            ? "SELECT t.*, t.ROWID AS GASO_ROWID FROM ({$sqlBase}) t"
+            : $sqlBase;
+
+        $ultimaPagina = (bool)($corpo['ultimaPagina'] ?? false);
+        $pagina = max(1, (int)($corpo['pagina'] ?? 1));
+
+        if ($ultimaPagina) {
+            $stmtCount = $pdo->query("SELECT COUNT(*) AS total FROM ({$sqlComRowid})");
+            $total = (int)$stmtCount->fetchColumn();
+            $pagina = $total === 0 ? 1 : (int)ceil($total / TAMANHO_PAGINA);
+        }
+
+        $offset = ($pagina - 1) * TAMANHO_PAGINA;
+        $sqlPaginado = "SELECT * FROM ({$sqlComRowid})"
+                     . " OFFSET :offset ROWS FETCH NEXT :tamanho ROWS ONLY";
+
+        $stmt = $pdo->prepare($sqlPaginado);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->bindValue(':tamanho', TAMANHO_PAGINA + 1, PDO::PARAM_INT);
+        $stmt->execute();
+        $linhasBrutas = normalizar_lista($stmt->fetchAll());
+
+        $temProximaPagina = count($linhasBrutas) > TAMANHO_PAGINA;
+        $linhasBrutas = array_slice($linhasBrutas, 0, TAMANHO_PAGINA);
+
+        // "colunas" nunca inclui a pseudo-coluna reservada gaso_rowid.
+        $colunas = $linhasBrutas === []
+            ? []
+            : array_values(array_filter(
+                array_keys($linhasBrutas[0]),
+                fn(string $c): bool => $c !== 'gaso_rowid'
+              ));
+        $colunasMinusculas = array_map('strtolower', $colunas);
+
+        $tiposColuna = $tabelaEditavel !== null
+            ? tipos_coluna_da_tabela($pdo, $tabelaEditavel)
+            : tipos_coluna_por_inferencia($colunasMinusculas, $linhasBrutas);
+
+        // Filtra tiposColuna só para as colunas que de fato vieram no
+        // resultado (uma tabela pode ter colunas que o SELECT não pediu).
+        $tiposColunaFiltrado = array_intersect_key(
+            $tiposColuna,
+            array_flip($colunasMinusculas)
+        );
+
         echo json_encode([
-            'tipo'    => 'select',
-            'colunas' => $colunas,
-            'linhas'  => $linhas,
+            'tipo'             => 'select',
+            'colunas'          => $colunasMinusculas,
+            'tiposColuna'      => $tiposColunaFiltrado,
+            'linhas'           => $linhasBrutas,
+            'pagina'           => $pagina,
+            'temProximaPagina' => $temProximaPagina,
+            'editavel'         => $tabelaEditavel !== null,
+            'tabela'           => $tabelaEditavel,
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
