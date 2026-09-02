@@ -2045,6 +2045,15 @@ select.publicacao-select {
   display: none;
 }
 
+.painel__icone-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.painel__icone-btn:disabled:hover {
+  background-color: var(--cor-superficie);
+}
+
 .painel__corpo {
   flex: 1;
   overflow-y: auto;
@@ -2725,10 +2734,35 @@ select.publicacao-select {
   align-items: center;
   gap: 6px;
   margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cor-divisor);
+}
+
+.sql-resultado-barra .painel__icone-btn {
+  box-shadow: var(--sombra-card);
+}
+
+.sql-resultado-barra .painel__icone-btn:hover:not(:disabled) {
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria);
+}
+
+/* Gravar so fica em destaque quando ha alteracao pendente pra gravar
+   (o botao ja vem desabilitado por padrao nesse caso, via JS). */
+#resultado-post-btn:not(:disabled) {
+  border-color: var(--tipo-procedimento-cor);
+  background-color: var(--tipo-procedimento-fundo);
+  color: var(--tipo-procedimento-cor);
+}
+
+#resultado-post-btn:not(:disabled):hover {
+  background-color: var(--tipo-procedimento-cor);
+  color: #ffffff;
 }
 
 .sql-resultado-export-wrapper {
   position: relative;
+  margin-left: auto;
 }
 
 .sql-resultado-export-menu {
