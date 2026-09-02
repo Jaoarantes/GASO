@@ -114,6 +114,62 @@ function detectar_tabela_editavel(string $sql): ?string {
     return $tabela;
 }
 
+// Busca o tipo Oracle de cada coluna de $tabela em USER_TAB_COLUMNS (mesma
+// fonte que tabelas.php já usa para a tela "Estrutura de Tabelas") e
+// simplifica para as 3 categorias que a UI precisa: numero, data, texto.
+// Mais confiável que ler o metadado do driver ODBC via getColumnMeta(),
+// que costuma devolver tipos genéricos/incompletos nesse driver.
+function tipos_coluna_da_tabela(PDO $pdo, string $tabela): array {
+    $sql = "SELECT column_name AS coluna, data_type AS tipo"
+         . " FROM user_tab_columns"
+         . " WHERE table_name = :tabela";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':tabela' => $tabela]);
+    $linhas = normalizar_lista($stmt->fetchAll());
+
+    $mapa = [];
+    foreach ($linhas as $linha) {
+        $nomeColuna = strtolower((string)$linha['coluna']);
+        $tipoOracle = strtoupper((string)$linha['tipo']);
+
+        if (str_contains($tipoOracle, 'DATE') || str_contains($tipoOracle, 'TIMESTAMP')) {
+            $mapa[$nomeColuna] = 'data';
+        } elseif (in_array($tipoOracle, ['NUMBER', 'FLOAT', 'INTEGER'], true)) {
+            $mapa[$nomeColuna] = 'numero';
+        } else {
+            $mapa[$nomeColuna] = 'texto';
+        }
+    }
+
+    return $mapa;
+}
+
+// Fallback quando não há tabela conhecida (SELECT não editável): classifica
+// pelo valor já trazido na primeira linha do resultado, sem consulta extra
+// ao Oracle. Menos preciso, mas suficiente para formatar export/exibição
+// quando não dá pra confiar em metadados de uma tabela única.
+function tipos_coluna_por_inferencia(array $colunas, array $linhas): array {
+    $mapa = [];
+    $primeiraLinha = $linhas[0] ?? [];
+
+    foreach ($colunas as $coluna) {
+        $valor = $primeiraLinha[strtolower($coluna)] ?? null;
+
+        if ($valor === null) {
+            $mapa[strtolower($coluna)] = 'texto';
+        } elseif (is_numeric($valor)) {
+            $mapa[strtolower($coluna)] = 'numero';
+        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}:\d{2})?$/', (string)$valor)) {
+            $mapa[strtolower($coluna)] = 'data';
+        } else {
+            $mapa[strtolower($coluna)] = 'texto';
+        }
+    }
+
+    return $mapa;
+}
+
 $ehSelect = (bool)preg_match('/^\s*select\b/i', $sql);
 
 try {
