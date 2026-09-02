@@ -50,11 +50,6 @@ function mostrarMensagemResultado(texto, tipo) {
   resultadoEl.appendChild(p);
 }
 
-function celulaVazia() {
-  const td = document.createElement("td");
-  return td;
-}
-
 function criarAreaErroPostChanges() {
   const el = document.createElement("p");
   el.className = "sql-resultado-erro sql-resultado-erro-post";

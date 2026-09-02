@@ -65,15 +65,27 @@ if (($corpo['tipo'] ?? '') === 'update-lote') {
         $coluna = strtoupper((string)($alt['coluna'] ?? ''));
         $valorNovo = $alt['valorNovo'] ?? null;
 
-        if ($rowid === '' || !preg_match('/^[A-Z_][A-Z0-9_$#]*$/', $coluna)) {
+        // Formato restrito de ROWID do Oracle: 18 caracteres em um alfabeto
+        // base64-like. Um rowid malformado passado direto ao Oracle vira
+        // ORA-01410 (invalid ROWID) e derruba o lote inteiro com mensagem
+        // crua — validar aqui evita a ida ao banco só para falhar.
+        if (!preg_match('/^[A-Za-z0-9+\/]{18}$/', $rowid) || !preg_match('/^[A-Z_][A-Z0-9_$#]*$/', $coluna)) {
             responder_erro(400, 'Alteração inválida: rowid ou coluna ausente/malformado.');
         }
 
         $porLinha[$rowid][$coluna] = $valorNovo;
     }
 
+    // Conexão isolada do try da transação: se pdo_oracle() lançar aqui,
+    // $pdo nunca chega a ser atribuída, e o catch abaixo (que consulta
+    // $pdo->inTransaction()) precisa de uma $pdo garantidamente definida.
     try {
         $pdo = pdo_oracle();
+    } catch (Throwable $e) {
+        responder_erro(500, 'Erro ao conectar no banco de dados.');
+    }
+
+    try {
         $pdo->beginTransaction();
 
         $linhasAfetadas = 0;
@@ -108,7 +120,12 @@ if (($corpo['tipo'] ?? '') === 'update-lote') {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        responder_erro(400, $e->getMessage());
+        // Não repassa a mensagem crua do Oracle ao cliente neste endpoint de
+        // escrita (diferente do padrão usado no restante do arquivo para
+        // SELECT/comando) — evita vazar detalhe interno em um fluxo que já
+        // altera dados. Detalhe fica só no log do servidor.
+        error_log('sql-editor update-lote: ' . $e->getMessage());
+        responder_erro(400, 'Erro ao gravar alterações.');
     }
 }
 
@@ -145,6 +162,21 @@ function detectar_tabela_editavel(string $sql): ?string {
     // contra escrita indevida é o UPDATE parametrizado com ROWID, não esta
     // função).
     if (preg_match('/\b(JOIN|UNION)\b/i', $semComentarios)) {
+        return null;
+    }
+
+    // DISTINCT, GROUP BY e funções de agregação produzem um resultado que
+    // não corresponde 1:1 a linhas físicas da tabela — Oracle proíbe
+    // selecionar ROWID sobre uma subquery com qualquer um desses (ORA-01446).
+    // Sem essa checagem, envolver a query com "SELECT t.*, t.ROWID ..."
+    // quebraria consultas que antes rodavam normalmente como SELECT comum.
+    if (preg_match('/\bDISTINCT\b/i', $semComentarios)) {
+        return null;
+    }
+    if (preg_match('/\bGROUP\s+BY\b/i', $semComentarios)) {
+        return null;
+    }
+    if (preg_match('/\b(COUNT|SUM|AVG|MIN|MAX)\s*\(/i', $semComentarios)) {
         return null;
     }
 
