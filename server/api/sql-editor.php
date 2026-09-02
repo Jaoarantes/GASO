@@ -291,8 +291,17 @@ try {
         $sqlBase = remover_for_update($sql);
         $tabelaEditavel = detectar_tabela_editavel($sqlBase);
 
+        // ROWIDTOCHAR converte a pseudo-coluna ROWID (tipo binário especial)
+        // para VARCHAR2 antes de sair do Oracle — o driver PDO ODBC desta
+        // VPS falha com ORA-24374 ("define not done before fetch") ao tentar
+        // descrever/definir automaticamente um ROWID bruto misturado com
+        // t.* numa subquery (confirmado: a mesma query com t.ROWID puro roda
+        // normalmente no PL/SQL Developer/OCI, só quebra via ODBC). Como o
+        // ROWID já é tratado como string em todo o resto do código (JSON,
+        // bind parameter no update-lote), convertê-lo aqui não muda nada
+        // além de evitar o describe problemático.
         $sqlComRowid = $tabelaEditavel !== null
-            ? "SELECT t.*, t.ROWID AS GASO_ROWID FROM ({$sqlBase}) t"
+            ? "SELECT t.*, ROWIDTOCHAR(t.ROWID) AS GASO_ROWID FROM ({$sqlBase}) t"
             : $sqlBase;
 
         $ultimaPagina = (bool)($corpo['ultimaPagina'] ?? false);
@@ -305,12 +314,18 @@ try {
         }
 
         $offset = ($pagina - 1) * TAMANHO_PAGINA;
+        $tamanhoBusca = TAMANHO_PAGINA + 1;
+
+        // OFFSET/FETCH NEXT como bind parameter (:offset/:tamanho) causa
+        // ORA-24374 ("define not done before fetch") no driver PDO ODBC
+        // usado nesta VPS — confirmado que o mesmo SQL com esses valores
+        // literais roda normalmente direto no Oracle. $offset/$tamanhoBusca
+        // são sempre inteiros calculados internamente (nunca vêm de input
+        // livre do usuário), então interpolar aqui é seguro.
         $sqlPaginado = "SELECT * FROM ({$sqlComRowid})"
-                     . " OFFSET :offset ROWS FETCH NEXT :tamanho ROWS ONLY";
+                     . " OFFSET {$offset} ROWS FETCH NEXT {$tamanhoBusca} ROWS ONLY";
 
         $stmt = $pdo->prepare($sqlPaginado);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->bindValue(':tamanho', TAMANHO_PAGINA + 1, PDO::PARAM_INT);
         $stmt->execute();
         $linhasBrutas = normalizar_lista($stmt->fetchAll());
 

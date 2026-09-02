@@ -18,3 +18,9 @@ public/js/config/tabelas-api-config.js
 # Planilhas soltas na pasta scripts (arquivos de trabalho, nao fazem parte do site)
 scripts/*.xlsx
 scripts/~$*
+
+# Notas de contexto de conversas com o Claude (uso local, nao faz parte do site)
+.claude/context/
+
+# Worktrees isolados usados durante implementação (uso local)
+.worktrees/
