@@ -6,6 +6,12 @@
 // enviar comandos que não sejam SELECT.
 declare(strict_types=1);
 
+// Algumas tabelas (ex: logs de auditoria grandes) fazem consultas legitimamente
+// lentas, que passariam do limite padrão do PHP (geralmente 30s) e derrubariam
+// a conexão antes mesmo do frontend desistir. 5 minutos, alinhado com o timeout
+// do fetch no frontend (novo-sql.js).
+set_time_limit(300);
+
 require __DIR__ . '/_common.php';
 
 carregar_dotenv(__DIR__ . '/.env');
