@@ -2538,7 +2538,9 @@ select.publicacao-select {
   flex-direction: column;
   gap: 16px;
   padding: 24px 20px;
-  height: calc(100vh - var(--altura-topo) - 48px);
+  /* Sem altura fixa aqui de proposito: a pagina rola normalmente, entao
+     o editor fica compacto no topo e o resultado cresce a vontade
+     conforme tem mais linhas, em vez de rolar dentro de uma caixinha. */
 }
 
 .sql-editor-toolbar {
@@ -2597,8 +2599,8 @@ select.publicacao-select {
 }
 
 .sql-editor-wrapper {
-  flex: 1;
-  min-height: 200px;
+  height: 280px;
+  flex-shrink: 0;
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   overflow: hidden;
@@ -2622,13 +2624,12 @@ select.publicacao-select {
 
 .sql-resultado {
   flex-shrink: 0;
-  max-height: 320px;
-  overflow-y: auto;
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   padding: 16px;
   background-color: var(--cor-superficie);
   box-shadow: var(--sombra-card);
+  margin-bottom: 24px;
 }
 
 .sql-resultado-vazio,
@@ -2674,19 +2675,29 @@ select.publicacao-select {
 
 .sql-resultado .colunas-tabela-wrapper {
   border: none;
-  /* Sem isso, esse wrapper (que tem overflow-x proprio) vira o container de
-     rolagem mais proximo do cabecalho e o "sticky" abaixo gruda nele em vez
-     de grudar no .sql-resultado (que e quem realmente rola aqui). */
-  overflow: visible;
+  /* Rolagem horizontal continua so nesse wrapper; a vertical agora e a da
+     pagina inteira (por isso overflow-y visivel aqui, nao "auto" — senao
+     esse wrapper viraria o container de rolagem mais proximo do cabecalho
+     e o "sticky" abaixo grudaria nele em vez de grudar na pagina). */
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .sql-resultado .colunas-tabela {
   font-size: 12px;
+  /* position: sticky nao funciona direito com border-collapse: collapse
+     (o cabecalho fixo deixa passar conteudo por tras ao rolar) — separate
+     resolve, e como so definimos border-right/border-bottom (nunca left/top)
+     nao dobra a espessura da linha. */
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .sql-resultado .colunas-tabela thead th {
   position: sticky;
-  top: 0;
+  /* Gruda logo abaixo do cabecalho fixo do site (84px), nao no topo real
+     da tela — senao ficaria por baixo dele. */
+  top: var(--altura-topo);
   z-index: 1;
   padding: 8px 10px;
   border-bottom: 2px solid var(--cor-primaria);
@@ -2695,6 +2706,10 @@ select.publicacao-select {
 
 .sql-resultado .colunas-tabela thead th:last-child {
   border-right: none;
+}
+
+.sql-resultado .colunas-tabela tbody tr:nth-child(even) {
+  background-color: var(--cor-primaria-suave);
 }
 
 .sql-resultado .colunas-tabela tbody td {
@@ -3383,4 +3398,10 @@ select.publicacao-select {
 .sql-resultado--expandido .colunas-tabela-wrapper {
   flex: 1;
   overflow: auto;
+}
+
+.sql-resultado--expandido .colunas-tabela thead th {
+  /* Em tela cheia nao tem o cabecalho do site por cima, entao gruda no
+     topo de verdade (o wrapper acima e que rola aqui, nao a pagina). */
+  top: 0;
 }
