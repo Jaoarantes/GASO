@@ -2680,11 +2680,31 @@ select.publicacao-select {
   overflow: visible;
 }
 
+.sql-resultado .colunas-tabela {
+  font-size: 12px;
+}
+
 .sql-resultado .colunas-tabela thead th {
   position: sticky;
   top: 0;
   z-index: 1;
+  padding: 8px 10px;
   border-bottom: 2px solid var(--cor-primaria);
+  border-right: 1px solid var(--cor-divisor);
+}
+
+.sql-resultado .colunas-tabela thead th:last-child {
+  border-right: none;
+}
+
+.sql-resultado .colunas-tabela tbody td {
+  padding: 6px 10px;
+  border-right: 1px solid var(--cor-divisor);
+  white-space: nowrap;
+}
+
+.sql-resultado .colunas-tabela tbody td:last-child {
+  border-right: none;
 }
 
 .celula-valor {
