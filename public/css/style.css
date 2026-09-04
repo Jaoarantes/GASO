@@ -2538,9 +2538,7 @@ select.publicacao-select {
   flex-direction: column;
   gap: 16px;
   padding: 24px 20px;
-  /* Sem altura fixa aqui de proposito: a pagina rola normalmente, entao
-     o editor fica compacto no topo e o resultado cresce a vontade
-     conforme tem mais linhas, em vez de rolar dentro de uma caixinha. */
+  height: calc(100vh - var(--altura-topo) - 34px);
 }
 
 .sql-editor-toolbar {
@@ -2623,13 +2621,17 @@ select.publicacao-select {
 }
 
 .sql-resultado {
-  flex-shrink: 0;
+  flex: 1;
+  /* Sem isso o flex nao deixa esse bloco encolher/rolar por dentro — ele so
+     cresce e empurra a secao inteira pra fora da tela em vez de ganhar
+     rolagem propria. */
+  min-height: 0;
+  overflow-y: auto;
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   padding: 16px;
   background-color: var(--cor-superficie);
   box-shadow: var(--sombra-card);
-  margin-bottom: 24px;
 }
 
 .sql-resultado-vazio,
@@ -2675,12 +2677,13 @@ select.publicacao-select {
 
 .sql-resultado .colunas-tabela-wrapper {
   border: none;
-  /* Rolagem horizontal continua so nesse wrapper; a vertical agora e a da
-     pagina inteira (por isso overflow-y visivel aqui, nao "auto" — senao
-     esse wrapper viraria o container de rolagem mais proximo do cabecalho
-     e o "sticky" abaixo grudaria nele em vez de grudar na pagina). */
-  overflow-x: auto;
-  overflow-y: visible;
+  /* Nao da pra declarar overflow-x:auto e overflow-y:visible ao mesmo tempo
+     nesse elemento — o navegador forca os dois eixos a ficarem "auto"
+     juntos (regra do proprio CSS, sem jeito de burlar). Por isso deixamos
+     os dois em "visible" aqui: quem rola (nos 2 eixos, inclusive o
+     horizontal da tabela larga) e o .sql-resultado logo acima, que e o
+     unico lugar onde o cabecalho fixo funciona direito. */
+  overflow: visible;
 }
 
 .sql-resultado .colunas-tabela {
@@ -2695,9 +2698,7 @@ select.publicacao-select {
 
 .sql-resultado .colunas-tabela thead th {
   position: sticky;
-  /* Gruda logo abaixo do cabecalho fixo do site (84px), nao no topo real
-     da tela — senao ficaria por baixo dele. */
-  top: var(--altura-topo);
+  top: 0;
   z-index: 1;
   padding: 8px 10px;
   border-bottom: 2px solid var(--cor-primaria);
