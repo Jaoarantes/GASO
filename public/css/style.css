@@ -2799,6 +2799,19 @@ select.publicacao-select {
   color: #ffffff;
 }
 
+/* Desfazer (rollback) so fica em destaque quando ha alteracao pendente pra
+   descartar (mesmo criterio de habilitacao do botao Gravar). */
+#resultado-rollback-btn:not(:disabled) {
+  border-color: var(--tipo-erro-cor);
+  background-color: var(--tipo-erro-fundo);
+  color: var(--tipo-erro-cor);
+}
+
+#resultado-rollback-btn:not(:disabled):hover {
+  background-color: var(--tipo-erro-cor);
+  color: #ffffff;
+}
+
 .sql-resultado-export-wrapper {
   position: relative;
   margin-left: auto;

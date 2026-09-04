@@ -11,6 +11,7 @@ const ICONE_EXPORT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const ICONE_EXPANDIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
 const ICONE_RECOLHER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4a2 2 0 0 1-2 2H3"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/><path d="M9 21v-4a2 2 0 0 0-2-2H3"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/></svg>';
 const ICONE_LAPIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const ICONE_ROLLBACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-1"/></svg>';
 
 function configurada() {
   return Boolean(TABELAS_API_URL && TABELAS_API_KEY);
@@ -39,7 +40,10 @@ function chavePendencia(rowid, coluna) {
 const editor = window.CodeMirror.fromTextArea(editorArea, {
   mode: "text/x-sql",
   lineNumbers: true,
-  lineWrapping: false
+  lineWrapping: false,
+  extraKeys: {
+    F8: () => executarComF8()
+  }
 });
 
 function mostrarMensagemResultado(texto, tipo) {
@@ -107,6 +111,13 @@ function criarBarraFerramentas() {
   postBtn.id = "resultado-post-btn";
   postBtn.title = "Gravar alterações";
   postBtn.innerHTML = ICONE_POST_CHANGES;
+
+  const rollbackBtn = document.createElement("button");
+  rollbackBtn.type = "button";
+  rollbackBtn.className = "painel__icone-btn";
+  rollbackBtn.id = "resultado-rollback-btn";
+  rollbackBtn.title = "Desfazer alterações não gravadas";
+  rollbackBtn.innerHTML = ICONE_ROLLBACK;
 
   const exportWrapper = document.createElement("div");
   exportWrapper.className = "sql-resultado-export-wrapper";
@@ -188,6 +199,7 @@ function criarBarraFerramentas() {
   barra.appendChild(proximaBtn);
   barra.appendChild(ultimaBtn);
   barra.appendChild(postBtn);
+  barra.appendChild(rollbackBtn);
   barra.appendChild(exportWrapper);
   barra.appendChild(expandirBtn);
 
@@ -249,7 +261,16 @@ function criarBarraFerramentas() {
     );
   });
 
+  rollbackBtn.addEventListener("click", () => {
+    if (pendenciasEdicao.size === 0) return;
+    pendenciasEdicao.clear();
+    mostrarErroPostChanges(null);
+    atualizarBotaoPostChanges();
+    atualizarTabela();
+  });
+
   postBtn.disabled = pendenciasEdicao.size === 0;
+  rollbackBtn.disabled = pendenciasEdicao.size === 0;
 
   return barra;
 }
@@ -414,6 +435,8 @@ function iniciarEdicaoCelula(td, rowid, coluna, valorAtual) {
 function atualizarBotaoPostChanges() {
   const postBtn = document.getElementById("resultado-post-btn");
   if (postBtn) postBtn.disabled = pendenciasEdicao.size === 0;
+  const rollbackBtn = document.getElementById("resultado-rollback-btn");
+  if (rollbackBtn) rollbackBtn.disabled = pendenciasEdicao.size === 0;
 }
 
 async function enviarPostChanges(alteracoes) {
@@ -614,8 +637,10 @@ function prosseguirComExecucao(sql) {
   }
 }
 
-executarBtn.addEventListener("click", () => {
-  const sql = editor.getValue().trim();
+// Ponto único de entrada pra rodar um SQL vindo do editor — usado pelo botão
+// "Executar" e pelo atalho F8. Trata os mesmos casos nos dois: SQL vazio,
+// pendências de edição não salvas, e a decisão SELECT/comando perigoso.
+function executarSqlDoEditor(sql) {
   if (!sql) {
     mostrarMensagemResultado("Escreva um comando SQL antes de executar.", "erro");
     return;
@@ -634,6 +659,19 @@ executarBtn.addEventListener("click", () => {
   }
 
   prosseguirComExecucao(sql);
+}
+
+// F8 executa a seleção atual do editor (como no PL/SQL Developer); sem nada
+// selecionado, roda o conteúdo inteiro — mesmo comportamento do botão
+// "Executar".
+function executarComF8() {
+  const selecao = editor.getSelection().trim();
+  const sql = selecao || editor.getValue().trim();
+  executarSqlDoEditor(sql);
+}
+
+executarBtn.addEventListener("click", () => {
+  executarSqlDoEditor(editor.getValue().trim());
 });
 
 // ── Painel "SQL Script" ──────────────────────────────────────────────────
