@@ -271,7 +271,7 @@ export default async function handler(req, res) {
   }
 
   // Historico enviado pelo navegador (perguntas/respostas anteriores dessa
-  // mesma conversa), pra o Aristóteles lembrar do que ja foi falado. Limita a 12
+  // mesma conversa), pra o Jarvis lembrar do que ja foi falado. Limita a 12
   // trocas mais recentes pra nao deixar a requisicao gigante.
   const historico = Array.isArray(req.body?.historico)
     ? req.body.historico
@@ -305,7 +305,7 @@ export default async function handler(req, res) {
       inlineData: { mimeType: img.mimeType, data: img.data }
     }));
 
-    const instrucaoSistema = "Você é o Aristóteles, assistente de suporte da Base de Soluções da Gasômetro"
+    const instrucaoSistema = "Você é o Jarvis, assistente de suporte da Base de Soluções da Gasômetro"
       + " Madeiras, especialista no ERP NL Gestão."
       + " Antes de responder, revise com atenção o conteúdo completo dos 5 documentos anexados"
       + " (Financeiro, Materiais, Compras, Vendas, Configurações) — não se baseie só no início"
