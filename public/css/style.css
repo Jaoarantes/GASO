@@ -2723,6 +2723,22 @@ select.publicacao-select {
   font-size: 13px;
 }
 
+.sql-resultado-executando {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sql-resultado-executando .painel__icone-btn {
+  flex-shrink: 0;
+}
+
+.sql-resultado-executando .painel__icone-btn:hover {
+  border-color: var(--tipo-erro-cor);
+  color: var(--tipo-erro-cor);
+}
+
 .sql-resultado-vazio {
   color: var(--cor-texto-suave);
 }

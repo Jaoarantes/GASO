@@ -12,6 +12,7 @@ const ICONE_EXPANDIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 const ICONE_RECOLHER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4a2 2 0 0 1-2 2H3"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/><path d="M9 21v-4a2 2 0 0 0-2-2H3"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/></svg>';
 const ICONE_LAPIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 const ICONE_ROLLBACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-1"/></svg>';
+const ICONE_PARAR = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>';
 
 function configurada() {
   return Boolean(TABELAS_API_URL && TABELAS_API_KEY);
@@ -27,14 +28,20 @@ const resultadoVazioEl = document.getElementById("sql-resultado-vazio");
 const executarBtn = document.getElementById("sql-toolbar-executar-btn");
 const scriptBtn = document.getElementById("sql-toolbar-script-btn");
 const abasBarraEl = document.getElementById("sql-abas-barra");
+const fecharTodasAbasBtn = document.getElementById("sql-toolbar-fechar-todas-btn");
 
 let controladorMenuExport = null; // AbortController do listener global de fechar o menu de export
 
 // ── Abas ─────────────────────────────────────────────────────────────────
 // Cada aba guarda seu próprio SQL e resultado — como janelas independentes
 // no PL/SQL Developer. O CodeMirror continua único (troca de conteúdo ao
-// trocar de aba); só o estado por-execução é isolado por aba. Sem
-// persistência entre sessões (não sobrevive a F5/fechar o navegador).
+// trocar de aba); só o estado por-execução é isolado por aba. Título e SQL
+// de cada aba persistem em localStorage (sobrevivem a navegar pra outra
+// página do site e voltar, e a fechar/reabrir o navegador) — mas não o
+// resultado da execução (grid/edições pendentes), que é sempre reconstruído
+// rodando a aba de novo.
+const CHAVE_LOCALSTORAGE_ABAS = "gaso_novo_sql_abas";
+
 let abas = [];
 let abaAtivaId = null;
 let proximoIdAba = 1;
@@ -53,6 +60,33 @@ function criarAba({ titulo, sqlTexto = "" }) {
 
 function abaAtiva() {
   return abas.find((a) => a.id === abaAtivaId) || null;
+}
+
+// Só título/sqlTexto são persistidos — o resto (resultado, pendências,
+// modo de edição) não sobrevive à navegação, é sempre reconstruído.
+function salvarAbasNoLocalStorage() {
+  try {
+    const dados = {
+      abaAtivaId,
+      abas: abas.map((a) => ({ id: a.id, titulo: a.titulo, sqlTexto: a.sqlTexto }))
+    };
+    localStorage.setItem(CHAVE_LOCALSTORAGE_ABAS, JSON.stringify(dados));
+  } catch {
+    // localStorage indisponível (modo privado, cota cheia, etc) — degrada
+    // silenciosamente pra "sem persistência", sem quebrar a tela.
+  }
+}
+
+function carregarAbasDoLocalStorage() {
+  try {
+    const bruto = localStorage.getItem(CHAVE_LOCALSTORAGE_ABAS);
+    if (!bruto) return null;
+    const dados = JSON.parse(bruto);
+    if (!Array.isArray(dados.abas) || dados.abas.length === 0) return null;
+    return dados;
+  } catch {
+    return null;
+  }
 }
 
 function tituloCurtoDoSql(sql) {
@@ -75,13 +109,44 @@ const editor = window.CodeMirror.fromTextArea(editorArea, {
   }
 });
 
+// Sem isso, digitar numa aba e navegar pra outra página do site (sem antes
+// trocar de aba, que é o único outro ponto que sincroniza sqlTexto) faria o
+// texto digitado nunca chegar a ser persistido. Debounce pra não gravar no
+// localStorage a cada tecla.
+let debounceSalvarTexto = null;
+editor.on("change", () => {
+  clearTimeout(debounceSalvarTexto);
+  debounceSalvarTexto = setTimeout(() => {
+    salvarSqlTextoNaAbaAtiva();
+    salvarAbasNoLocalStorage();
+  }, 400);
+});
+
 const ICONE_FECHAR_ABA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 
-// Sempre existe pelo menos uma aba — a inicial, em branco.
-const abaInicial = criarAba({ sqlTexto: "" });
-abas.push(abaInicial);
-abaAtivaId = abaInicial.id;
-renderizarAbas();
+// Sempre existe pelo menos uma aba. Tenta restaurar do localStorage
+// (título/sqlTexto de cada aba); se não houver nada salvo (ou o formato
+// salvo for inválido), começa com uma aba inicial em branco.
+(function inicializarAbas() {
+  const salvo = carregarAbasDoLocalStorage();
+
+  if (salvo) {
+    abas = salvo.abas.map((a) => {
+      const aba = criarAba({ titulo: a.titulo, sqlTexto: a.sqlTexto || "" });
+      aba.id = a.id; // preserva os ids salvos, pra abaAtivaId bater
+      return aba;
+    });
+    proximoIdAba = Math.max(...abas.map((a) => a.id), 0) + 1;
+    abaAtivaId = abas.some((a) => a.id === salvo.abaAtivaId) ? salvo.abaAtivaId : abas[0].id;
+  } else {
+    const abaInicial = criarAba({ sqlTexto: "" });
+    abas.push(abaInicial);
+    abaAtivaId = abaInicial.id;
+  }
+
+  editor.setValue(abaAtiva().sqlTexto);
+  renderizarAbas();
+})();
 
 function renderizarAbas() {
   abasBarraEl.innerHTML = "";
@@ -118,6 +183,8 @@ function renderizarAbas() {
   novaAbaBtn.textContent = "+";
   novaAbaBtn.addEventListener("click", () => abrirAba({ sqlTexto: "" }));
   abasBarraEl.appendChild(novaAbaBtn);
+
+  salvarAbasNoLocalStorage();
 }
 
 // Salva o conteúdo atual do editor na aba que está deixando de ser ativa,
@@ -222,6 +289,29 @@ function fecharAba(id) {
 
   fechar();
 }
+
+// Fecha todas as abas de uma vez, sempre com confirmação (diferente de
+// fecharAba, que só confirma se houver pendência — fechar tudo é mais
+// destrutivo, então sempre avisa). Volta pro estado inicial: uma única aba
+// em branco.
+function fecharTodasAsAbas() {
+  const preview = abas.map((a) => a.titulo || "Nova aba").join("\n");
+
+  abrirConfirmacaoGenerica(
+    `Isso vai fechar ${abas.length} aba(s). O texto SQL não gravado em cada uma será perdido. Deseja continuar?`,
+    preview,
+    () => {
+      const nova = criarAba({ sqlTexto: "" });
+      abas = [nova];
+      abaAtivaId = nova.id;
+      editor.setValue("");
+      renderizarAbas();
+      mostrarMensagemResultado("Escreva um comando e clique em Executar.", "status");
+    }
+  );
+}
+
+fecharTodasAbasBtn.addEventListener("click", fecharTodasAsAbas);
 
 function mostrarMensagemResultado(texto, tipo) {
   resultadoEl.innerHTML = "";
@@ -692,8 +782,24 @@ function mostrarTabelaResultado(dados) {
 // (server/api/sql-editor.php), pra não abortar no frontend antes do servidor.
 const TIMEOUT_EXECUCAO_MS = 5 * 60 * 1000;
 
+// Controller da execução em andamento, exposto pro botão de parar (stop)
+// poder abortar manualmente — igual ao que já acontece sozinho no timeout
+// de 5 minutos. Só cancela do lado do navegador: a query continua rodando
+// no Oracle até terminar sozinha, não há como matá-la a partir daqui sem
+// rastrear a sessão Oracle em outra chamada (fora de escopo por ora).
+let controladorExecucaoAtual = null;
+let canceladoPeloUsuario = false;
+
+function pararExecucaoAtual() {
+  if (!controladorExecucaoAtual) return;
+  canceladoPeloUsuario = true;
+  controladorExecucaoAtual.abort();
+}
+
 async function executarNoBackend(sql, opcoes = {}) {
   const controlador = new AbortController();
+  controladorExecucaoAtual = controlador;
+  canceladoPeloUsuario = false;
   const timeoutId = setTimeout(() => controlador.abort(), TIMEOUT_EXECUCAO_MS);
 
   try {
@@ -716,11 +822,19 @@ async function executarNoBackend(sql, opcoes = {}) {
     return dados;
   } catch (erro) {
     if (erro.name === "AbortError") {
-      throw new Error("A consulta demorou mais de 5 minutos e foi cancelada.");
+      // A query pode continuar rodando no Oracle mesmo depois de cancelada
+      // aqui — isso é uma limitação conhecida, não um bug: cancelar é só
+      // do lado do navegador.
+      throw new Error(
+        canceladoPeloUsuario
+          ? "Consulta cancelada. A query pode continuar rodando no banco até terminar sozinha."
+          : "A consulta demorou mais de 5 minutos e foi cancelada."
+      );
     }
     throw erro;
   } finally {
     clearTimeout(timeoutId);
+    controladorExecucaoAtual = null;
   }
 }
 
@@ -729,6 +843,32 @@ function formatarTempoDecorrido(ms) {
   const minutos = Math.floor(segundosTotais / 60);
   const segundos = segundosTotais % 60;
   return minutos > 0 ? `${minutos}m ${segundos}s` : `${segundos}s`;
+}
+
+// Mesma aparência de mostrarMensagemResultado(texto, "status"), mas com um
+// botão de parar (stop) ao lado — só usada enquanto uma execução está de
+// fato em andamento.
+function mostrarMensagemExecutando(texto) {
+  resultadoEl.innerHTML = "";
+
+  const linha = document.createElement("div");
+  linha.className = "sql-resultado-executando";
+
+  const p = document.createElement("p");
+  p.className = "sql-resultado-status";
+  p.textContent = texto;
+  linha.appendChild(p);
+
+  const pararBtn = document.createElement("button");
+  pararBtn.type = "button";
+  pararBtn.className = "painel__icone-btn";
+  pararBtn.title = "Parar execução";
+  pararBtn.setAttribute("aria-label", "Parar execução");
+  pararBtn.innerHTML = ICONE_PARAR;
+  pararBtn.addEventListener("click", pararExecucaoAtual);
+  linha.appendChild(pararBtn);
+
+  resultadoEl.appendChild(linha);
 }
 
 async function executar(sql, opcoes = {}) {
@@ -740,9 +880,9 @@ async function executar(sql, opcoes = {}) {
   executarBtn.disabled = true;
 
   const inicio = Date.now();
-  mostrarMensagemResultado("Executando... (0s)", "status");
+  mostrarMensagemExecutando("Executando... (0s)");
   const intervaloContador = setInterval(() => {
-    mostrarMensagemResultado(`Executando... (${formatarTempoDecorrido(Date.now() - inicio)})`, "status");
+    mostrarMensagemExecutando(`Executando... (${formatarTempoDecorrido(Date.now() - inicio)})`);
   }, 1000);
 
   try {
