@@ -2537,8 +2537,7 @@ select.publicacao-select {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 24px 20px;
-  height: calc(100vh - var(--altura-topo) - 34px);
+  padding: 24px 20px 10px;
 }
 
 .sql-editor-toolbar {
@@ -2621,12 +2620,13 @@ select.publicacao-select {
 }
 
 .sql-resultado {
-  flex: 1;
-  /* Sem isso o flex nao deixa esse bloco encolher/rolar por dentro — ele so
-     cresce e empurra a secao inteira pra fora da tela em vez de ganhar
-     rolagem propria. */
-  min-height: 0;
+  flex-shrink: 0;
+  /* Altura em % da tela (nao em conta fixa de pixel) pra nunca zerar/sumir
+     em telas mais baixas, com um piso minimo garantido. */
+  min-height: 300px;
+  max-height: 65vh;
   overflow-y: auto;
+  margin-bottom: 24px;
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   padding: 16px;

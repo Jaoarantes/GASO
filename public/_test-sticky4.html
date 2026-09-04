@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-sidebar="expandida">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar__topo">
+      <a class="sidebar__logo-link" href="#"><img class="sidebar__logo" src="" alt=""></a>
+      <button class="sidebar__colapsar" type="button"></button>
+    </div>
+    <div class="sidebar__menu"></div>
+  </nav>
+  <header class="header"><p class="text-header">Novo SQL</p></header>
+  <main class="conteudo">
+    <div class="sql-editor-secao">
+      <div class="sql-editor-toolbar">
+        <button class="sql-editor-toolbar__btn" type="button"><span>SQL Script</span></button>
+        <button class="sql-editor-toolbar__btn sql-editor-toolbar__btn--principal" type="button"><span>Executar</span></button>
+      </div>
+      <div class="sql-editor-wrapper"></div>
+      <div class="sql-resultado" id="resultado">
+        <div class="sql-resultado-barra">
+          <button class="painel__icone-btn" type="button">L</button>
+          <button class="painel__icone-btn" type="button">&gt;</button>
+        </div>
+        <div class="colunas-tabela-wrapper" id="wrapper"></div>
+      </div>
+    </div>
+  </main>
+  <script>
+    const colunas = ["NUM_SEQ_LOG","DTA_OPERACAO_LOG","COD_OPERACAO_LOG","DES_USUARIO_BANCO_LOG","DES_USUARIO_GESTAO_LOG","DES_ESTACAO_LOG","IND_TIPO_LOG","COD_PROGRAMA"];
+    let html = '<table class="colunas-tabela"><thead><tr>' + colunas.map(c => `<th>${c}</th>`).join("") + "</tr></thead><tbody>";
+    for (let i = 0; i < 40; i++) {
+      html += "<tr>" + colunas.map((c, idx) => `<td>${idx === 0 ? 119200455 + i : "valor " + i}</td>`).join("") + "</tr>";
+    }
+    html += "</tbody></table>";
+    document.getElementById("wrapper").innerHTML = html;
+    window.medir = () => {
+      const resultado = document.getElementById('resultado');
+      return JSON.stringify({ innerHeight: window.innerHeight, resultadoHeight: resultado.offsetHeight, resultadoVisible: resultado.getBoundingClientRect() });
+    };
+  </script>
+</body>
+</html>
