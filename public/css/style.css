@@ -2698,7 +2698,10 @@ select.publicacao-select {
 
 .sql-resultado .colunas-tabela thead th {
   position: sticky;
-  top: 0;
+  /* -1px em vez de 0: com 0 sobra um fiapo de 1px da linha de tras
+     aparecendo por cima do cabecalho (arredondamento de subpixel do
+     navegador com as alturas de linha quebradas). */
+  top: -1px;
   z-index: 1;
   padding: 8px 10px;
   border-bottom: 2px solid var(--cor-primaria);
@@ -3399,10 +3402,4 @@ select.publicacao-select {
 .sql-resultado--expandido .colunas-tabela-wrapper {
   flex: 1;
   overflow: auto;
-}
-
-.sql-resultado--expandido .colunas-tabela thead th {
-  /* Em tela cheia nao tem o cabecalho do site por cima, entao gruda no
-     topo de verdade (o wrapper acima e que rola aqui, nao a pagina). */
-  top: 0;
 }
