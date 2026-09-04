@@ -11,6 +11,7 @@ const ICONE_EXPORT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const ICONE_EXPANDIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
 const ICONE_RECOLHER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4a2 2 0 0 1-2 2H3"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/><path d="M9 21v-4a2 2 0 0 0-2-2H3"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/></svg>';
 const ICONE_LAPIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const ICONE_ROLLBACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-1"/></svg>';
 
 function configurada() {
   return Boolean(TABELAS_API_URL && TABELAS_API_KEY);
@@ -25,12 +26,41 @@ const resultadoEl = document.getElementById("sql-resultado");
 const resultadoVazioEl = document.getElementById("sql-resultado-vazio");
 const executarBtn = document.getElementById("sql-toolbar-executar-btn");
 const scriptBtn = document.getElementById("sql-toolbar-script-btn");
+const abasBarraEl = document.getElementById("sql-abas-barra");
 
-let estadoResultado = null; // { sql, colunas, tiposColuna, linhas, pagina, temProximaPagina, editavel, tabela }
 let controladorMenuExport = null; // AbortController do listener global de fechar o menu de export
 
-let modoEdicao = false;
-let pendenciasEdicao = new Map(); // chave: `${rowid}::${coluna}` -> { rowid, coluna, valorNovo, valorAntigo }
+// ── Abas ─────────────────────────────────────────────────────────────────
+// Cada aba guarda seu próprio SQL e resultado — como janelas independentes
+// no PL/SQL Developer. O CodeMirror continua único (troca de conteúdo ao
+// trocar de aba); só o estado por-execução é isolado por aba. Sem
+// persistência entre sessões (não sobrevive a F5/fechar o navegador).
+let abas = [];
+let abaAtivaId = null;
+let proximoIdAba = 1;
+
+function criarAba({ titulo, sqlTexto = "" }) {
+  return {
+    id: proximoIdAba++,
+    titulo,
+    sqlTexto,
+    estadoResultado: null, // { sql, colunas, tiposColuna, linhas, pagina, temProximaPagina, editavel, tabela }
+    modoEdicao: false,
+    pendenciasEdicao: new Map(), // chave: `${rowid}::${coluna}` -> { rowid, coluna, valorNovo, valorAntigo }
+    ordemColuna: null // { coluna: string, asc: boolean } | null
+  };
+}
+
+function abaAtiva() {
+  return abas.find((a) => a.id === abaAtivaId) || null;
+}
+
+function tituloCurtoDoSql(sql) {
+  const semComentarios = sql.replace(/--.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "").trim();
+  const primeiraLinha = semComentarios.split("\n").find((l) => l.trim() !== "") || "";
+  if (!primeiraLinha) return "Nova aba";
+  return primeiraLinha.length > 40 ? primeiraLinha.slice(0, 40) + "…" : primeiraLinha;
+}
 
 function chavePendencia(rowid, coluna) {
   return `${rowid}::${coluna}`;
@@ -39,8 +69,159 @@ function chavePendencia(rowid, coluna) {
 const editor = window.CodeMirror.fromTextArea(editorArea, {
   mode: "text/x-sql",
   lineNumbers: true,
-  lineWrapping: false
+  lineWrapping: false,
+  extraKeys: {
+    F8: () => executarComF8()
+  }
 });
+
+const ICONE_FECHAR_ABA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+
+// Sempre existe pelo menos uma aba — a inicial, em branco.
+const abaInicial = criarAba({ sqlTexto: "" });
+abas.push(abaInicial);
+abaAtivaId = abaInicial.id;
+renderizarAbas();
+
+function renderizarAbas() {
+  abasBarraEl.innerHTML = "";
+
+  abas.forEach((aba) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "sql-aba-item" + (aba.id === abaAtivaId ? " sql-aba-item--ativa" : "");
+    item.title = aba.titulo || "Nova aba";
+
+    const titulo = document.createElement("span");
+    titulo.className = "sql-aba-item__titulo";
+    titulo.textContent = aba.titulo || "Nova aba";
+    item.appendChild(titulo);
+
+    const fecharBtn = document.createElement("span");
+    fecharBtn.className = "sql-aba-item__fechar";
+    fecharBtn.innerHTML = ICONE_FECHAR_ABA;
+    fecharBtn.title = "Fechar aba";
+    fecharBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      fecharAba(aba.id);
+    });
+    item.appendChild(fecharBtn);
+
+    item.addEventListener("click", () => selecionarAba(aba.id));
+    abasBarraEl.appendChild(item);
+  });
+
+  const novaAbaBtn = document.createElement("button");
+  novaAbaBtn.type = "button";
+  novaAbaBtn.className = "sql-aba-nova-btn";
+  novaAbaBtn.title = "Nova aba";
+  novaAbaBtn.textContent = "+";
+  novaAbaBtn.addEventListener("click", () => abrirAba({ sqlTexto: "" }));
+  abasBarraEl.appendChild(novaAbaBtn);
+}
+
+// Salva o conteúdo atual do editor na aba que está deixando de ser ativa,
+// antes de trocar — sem isso o texto digitado na aba anterior se perderia.
+function salvarSqlTextoNaAbaAtiva() {
+  const aba = abaAtiva();
+  if (aba) aba.sqlTexto = editor.getValue();
+}
+
+function selecionarAba(id) {
+  if (id === abaAtivaId) return;
+  salvarSqlTextoNaAbaAtiva();
+  abaAtivaId = id;
+  const aba = abaAtiva();
+  editor.setValue(aba.sqlTexto);
+  renderizarAbas();
+  renderizarResultadoDaAbaAtiva();
+}
+
+// Renderiza o painel de resultado (#sql-resultado) a partir do estado da
+// aba ativa — chamado ao trocar de aba, sem executar nada de novo.
+function renderizarResultadoDaAbaAtiva() {
+  const aba = abaAtiva();
+  if (!aba || !aba.estadoResultado) {
+    mostrarMensagemResultado("Escreva um comando e clique em Executar.", "status");
+    return;
+  }
+  resultadoEl.innerHTML = "";
+
+  const barra = criarBarraFerramentas();
+  resultadoEl.appendChild(barra);
+
+  const erroPost = criarAreaErroPostChanges();
+  resultadoEl.appendChild(erroPost);
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "colunas-tabela-wrapper sql-resultado-tabela-wrapper";
+  wrapper.id = "sql-resultado-tabela-wrapper";
+
+  wrapper.appendChild(construirTabela());
+  resultadoEl.appendChild(wrapper);
+}
+
+// Abre uma aba nova: se já existir uma aba com o mesmo título (ex: reabrir
+// o mesmo script salvo), reativa ela em vez de duplicar.
+function abrirAba({ titulo, sqlTexto = "" }) {
+  if (titulo) {
+    const existente = abas.find((a) => a.titulo === titulo);
+    if (existente) {
+      selecionarAba(existente.id);
+      return existente;
+    }
+  }
+
+  salvarSqlTextoNaAbaAtiva();
+  const nova = criarAba({ titulo, sqlTexto });
+  abas.push(nova);
+  abaAtivaId = nova.id;
+  editor.setValue(nova.sqlTexto);
+  renderizarAbas();
+  mostrarMensagemResultado("Escreva um comando e clique em Executar.", "status");
+  return nova;
+}
+
+function fecharAba(id) {
+  const aba = abas.find((a) => a.id === id);
+  if (!aba) return;
+
+  const fechar = () => {
+    const indiceFechado = abas.findIndex((a) => a.id === id);
+    abas = abas.filter((a) => a.id !== id);
+
+    if (abas.length === 0) {
+      // Sempre existe pelo menos uma aba — recria uma em branco.
+      const nova = criarAba({ sqlTexto: "" });
+      abas.push(nova);
+      abaAtivaId = nova.id;
+      editor.setValue("");
+      renderizarAbas();
+      mostrarMensagemResultado("Escreva um comando e clique em Executar.", "status");
+      return;
+    }
+
+    if (id === abaAtivaId) {
+      const proxima = abas[Math.max(0, indiceFechado - 1)];
+      abaAtivaId = proxima.id;
+      editor.setValue(proxima.sqlTexto);
+      renderizarResultadoDaAbaAtiva();
+    }
+
+    renderizarAbas();
+  };
+
+  if (aba.pendenciasEdicao.size > 0) {
+    abrirConfirmacaoGenerica(
+      "Esta aba tem alterações não gravadas. Fechar a aba descarta essas alterações (elas não são enviadas ao banco). Deseja continuar?",
+      [...aba.pendenciasEdicao.values()].map((a) => `${a.coluna}: "${a.valorAntigo}" → "${a.valorNovo}"`).join("\n"),
+      fechar
+    );
+    return;
+  }
+
+  fechar();
+}
 
 function mostrarMensagemResultado(texto, tipo) {
   resultadoEl.innerHTML = "";
@@ -70,6 +251,7 @@ function mostrarErroPostChanges(texto) {
 }
 
 function criarBarraFerramentas() {
+  const aba = abaAtiva();
   const barra = document.createElement("div");
   barra.className = "sql-resultado-barra";
 
@@ -78,12 +260,12 @@ function criarBarraFerramentas() {
   cadeadoBtn.className = "painel__icone-btn";
   cadeadoBtn.id = "resultado-cadeado-btn";
   cadeadoBtn.innerHTML = ICONE_CADEADO_FECHADO;
-  if (!estadoResultado.editavel) {
+  if (!aba.estadoResultado.editavel) {
     cadeadoBtn.disabled = true;
     cadeadoBtn.title = "Edição disponível apenas para SELECT de uma única tabela.";
   } else {
-    cadeadoBtn.title = modoEdicao ? "Desabilitar edição" : "Habilitar edição";
-    cadeadoBtn.innerHTML = modoEdicao ? ICONE_CADEADO_ABERTO : ICONE_CADEADO_FECHADO;
+    cadeadoBtn.title = aba.modoEdicao ? "Desabilitar edição" : "Habilitar edição";
+    cadeadoBtn.innerHTML = aba.modoEdicao ? ICONE_CADEADO_ABERTO : ICONE_CADEADO_FECHADO;
   }
 
   const proximaBtn = document.createElement("button");
@@ -92,7 +274,7 @@ function criarBarraFerramentas() {
   proximaBtn.id = "resultado-proxima-btn";
   proximaBtn.title = "Próxima página";
   proximaBtn.innerHTML = ICONE_PROXIMA_PAGINA;
-  proximaBtn.disabled = !estadoResultado.temProximaPagina;
+  proximaBtn.disabled = !aba.estadoResultado.temProximaPagina;
 
   const ultimaBtn = document.createElement("button");
   ultimaBtn.type = "button";
@@ -107,6 +289,13 @@ function criarBarraFerramentas() {
   postBtn.id = "resultado-post-btn";
   postBtn.title = "Gravar alterações";
   postBtn.innerHTML = ICONE_POST_CHANGES;
+
+  const rollbackBtn = document.createElement("button");
+  rollbackBtn.type = "button";
+  rollbackBtn.className = "painel__icone-btn";
+  rollbackBtn.id = "resultado-rollback-btn";
+  rollbackBtn.title = "Desfazer alterações não gravadas";
+  rollbackBtn.innerHTML = ICONE_ROLLBACK;
 
   const exportWrapper = document.createElement("div");
   exportWrapper.className = "sql-resultado-export-wrapper";
@@ -127,7 +316,7 @@ function criarBarraFerramentas() {
   itemExcel.className = "sql-resultado-export-item";
   itemExcel.textContent = "Excel (.xlsx)";
   itemExcel.addEventListener("click", () => {
-    exportarExcel(estadoResultado);
+    exportarExcel(aba.estadoResultado);
     exportMenu.hidden = true;
   });
 
@@ -136,20 +325,20 @@ function criarBarraFerramentas() {
   itemCsv.className = "sql-resultado-export-item";
   itemCsv.textContent = "CSV";
   itemCsv.addEventListener("click", () => {
-    exportarCsv(estadoResultado);
+    exportarCsv(aba.estadoResultado);
     exportMenu.hidden = true;
   });
 
   exportMenu.appendChild(itemExcel);
   exportMenu.appendChild(itemCsv);
 
-  if (estadoResultado.editavel) {
+  if (aba.estadoResultado.editavel) {
     const itemSql = document.createElement("button");
     itemSql.type = "button";
     itemSql.className = "sql-resultado-export-item";
     itemSql.textContent = "SQL (.sql)";
     itemSql.addEventListener("click", () => {
-      exportarSql(estadoResultado);
+      exportarSql(aba.estadoResultado);
       exportMenu.hidden = true;
     });
     exportMenu.appendChild(itemSql);
@@ -188,6 +377,7 @@ function criarBarraFerramentas() {
   barra.appendChild(proximaBtn);
   barra.appendChild(ultimaBtn);
   barra.appendChild(postBtn);
+  barra.appendChild(rollbackBtn);
   barra.appendChild(exportWrapper);
   barra.appendChild(expandirBtn);
 
@@ -201,14 +391,14 @@ function criarBarraFerramentas() {
   });
 
   function trocarPagina(opcoes) {
-    const ir = () => executar(estadoResultado.sql, opcoes);
+    const ir = () => executar(aba.estadoResultado.sql, opcoes);
 
-    if (pendenciasEdicao.size > 0) {
+    if (aba.pendenciasEdicao.size > 0) {
       abrirConfirmacaoGenerica(
         "Há alterações não gravadas nesta página. Trocar de página descarta essas alterações (elas não são enviadas ao banco). Deseja continuar?",
-        [...pendenciasEdicao.values()].map((a) => `${a.coluna}: "${a.valorAntigo}" → "${a.valorNovo}"`).join("\n"),
+        [...aba.pendenciasEdicao.values()].map((a) => `${a.coluna}: "${a.valorAntigo}" → "${a.valorNovo}"`).join("\n"),
         () => {
-          pendenciasEdicao.clear();
+          aba.pendenciasEdicao.clear();
           ir();
         }
       );
@@ -219,7 +409,7 @@ function criarBarraFerramentas() {
   }
 
   proximaBtn.addEventListener("click", () => {
-    trocarPagina({ pagina: estadoResultado.pagina + 1 });
+    trocarPagina({ pagina: aba.estadoResultado.pagina + 1 });
   });
 
   ultimaBtn.addEventListener("click", () => {
@@ -227,35 +417,43 @@ function criarBarraFerramentas() {
   });
 
   cadeadoBtn.addEventListener("click", () => {
-    if (!estadoResultado.editavel) return;
-    modoEdicao = !modoEdicao;
-    cadeadoBtn.innerHTML = modoEdicao ? ICONE_CADEADO_ABERTO : ICONE_CADEADO_FECHADO;
-    cadeadoBtn.title = modoEdicao ? "Desabilitar edição" : "Habilitar edição";
+    if (!aba.estadoResultado.editavel) return;
+    aba.modoEdicao = !aba.modoEdicao;
+    cadeadoBtn.innerHTML = aba.modoEdicao ? ICONE_CADEADO_ABERTO : ICONE_CADEADO_FECHADO;
+    cadeadoBtn.title = aba.modoEdicao ? "Desabilitar edição" : "Habilitar edição";
     atualizarTabela();
   });
 
   postBtn.addEventListener("click", () => {
-    if (pendenciasEdicao.size === 0) return;
+    if (aba.pendenciasEdicao.size === 0) return;
 
-    const alteracoes = [...pendenciasEdicao.values()];
+    const alteracoes = [...aba.pendenciasEdicao.values()];
     const preview = alteracoes
-      .map((a) => `${estadoResultado.tabela}.${a.coluna} (rowid ${a.rowid}): "${a.valorAntigo}" → "${a.valorNovo}"`)
+      .map((a) => `${aba.estadoResultado.tabela}.${a.coluna} (rowid ${a.rowid}): "${a.valorAntigo}" → "${a.valorNovo}"`)
       .join("\n");
 
     abrirConfirmacaoGenerica(
-      `Isso vai gravar ${alteracoes.length} alteração(ões) na tabela ${estadoResultado.tabela}, no banco de produção. Essa ação não pode ser desfeita.`,
+      `Isso vai gravar ${alteracoes.length} alteração(ões) na tabela ${aba.estadoResultado.tabela}, no banco de produção. Essa ação não pode ser desfeita.`,
       preview,
       () => enviarPostChanges(alteracoes)
     );
   });
 
-  postBtn.disabled = pendenciasEdicao.size === 0;
+  rollbackBtn.addEventListener("click", () => {
+    if (aba.pendenciasEdicao.size === 0) return;
+    aba.pendenciasEdicao.clear();
+    mostrarErroPostChanges(null);
+    atualizarBotaoPostChanges();
+    atualizarTabela();
+  });
+
+  postBtn.disabled = aba.pendenciasEdicao.size === 0;
+  rollbackBtn.disabled = aba.pendenciasEdicao.size === 0;
 
   return barra;
 }
 
-let ordemColuna = null; // { coluna: string, asc: boolean } | null
-let linhasExibidas = []; // cópia de estadoResultado.linhas, possivelmente reordenada
+let linhasExibidas = []; // cópia de estadoResultado.linhas da aba ativa, possivelmente reordenada — só de uso local à renderização da tabela, não precisa ser por-aba (é recalculada a cada construirTabela())
 
 function compararValores(a, b, coluna) {
   const va = a[coluna];
@@ -279,41 +477,44 @@ function compararValores(a, b, coluna) {
 }
 
 function linhasOrdenadas() {
-  if (!ordemColuna) return estadoResultado.linhas;
-  const copia = [...estadoResultado.linhas];
+  const aba = abaAtiva();
+  if (!aba.ordemColuna) return aba.estadoResultado.linhas;
+  const copia = [...aba.estadoResultado.linhas];
   copia.sort((a, b) => {
-    const cmp = compararValores(a, b, ordemColuna.coluna.toLowerCase());
-    return ordemColuna.asc ? cmp : -cmp;
+    const cmp = compararValores(a, b, aba.ordemColuna.coluna.toLowerCase());
+    return aba.ordemColuna.asc ? cmp : -cmp;
   });
   return copia;
 }
 
 function alternarOrdenacao(coluna) {
-  if (!ordemColuna || ordemColuna.coluna !== coluna) {
-    ordemColuna = { coluna, asc: true };
-  } else if (ordemColuna.asc) {
-    ordemColuna = { coluna, asc: false };
+  const aba = abaAtiva();
+  if (!aba.ordemColuna || aba.ordemColuna.coluna !== coluna) {
+    aba.ordemColuna = { coluna, asc: true };
+  } else if (aba.ordemColuna.asc) {
+    aba.ordemColuna = { coluna, asc: false };
   } else {
-    ordemColuna = null;
+    aba.ordemColuna = null;
   }
   atualizarTabela();
 }
 
 function construirTabela() {
+  const aba = abaAtiva();
   const tabela = document.createElement("table");
   tabela.className = "colunas-tabela";
 
   const thead = document.createElement("thead");
   const trCabecalho = document.createElement("tr");
-  estadoResultado.colunas.forEach((c) => {
+  aba.estadoResultado.colunas.forEach((c) => {
     const th = document.createElement("th");
     th.className = "coluna-th-ordenavel";
     th.textContent = c;
     const seta = document.createElement("span");
     seta.className = "coluna-ordem-seta";
     seta.dataset.campo = c;
-    if (ordemColuna && ordemColuna.coluna === c) {
-      seta.textContent = ordemColuna.asc ? "↑" : "↓";
+    if (aba.ordemColuna && aba.ordemColuna.coluna === c) {
+      seta.textContent = aba.ordemColuna.asc ? "↑" : "↓";
     }
     th.appendChild(seta);
     th.addEventListener("click", () => alternarOrdenacao(c));
@@ -326,12 +527,12 @@ function construirTabela() {
   linhasExibidas.forEach((linha) => {
     const tr = document.createElement("tr");
     const rowid = linha.gaso_rowid;
-    estadoResultado.colunas.forEach((c) => {
+    aba.estadoResultado.colunas.forEach((c) => {
       const td = document.createElement("td");
       td.dataset.coluna = c;
 
       const chave = chavePendencia(rowid, c);
-      const pendencia = pendenciasEdicao.get(chave);
+      const pendencia = aba.pendenciasEdicao.get(chave);
       const valorAtual = pendencia ? pendencia.valorNovo : (linha[c] ?? "");
 
       const span = document.createElement("span");
@@ -343,7 +544,7 @@ function construirTabela() {
         td.classList.add("celula-alterada");
       }
 
-      if (modoEdicao && estadoResultado.editavel && rowid) {
+      if (aba.modoEdicao && aba.estadoResultado.editavel && rowid) {
         const lapis = document.createElement("button");
         lapis.type = "button";
         lapis.className = "celula-editar-btn";
@@ -382,14 +583,15 @@ function iniciarEdicaoCelula(td, rowid, coluna, valorAtual) {
   input.select();
 
   const confirmar = () => {
+    const aba = abaAtiva();
     const valorNovo = input.value;
     const chave = chavePendencia(rowid, coluna);
     const valorOriginal = linhasExibidas.find((l) => l.gaso_rowid === rowid)?.[coluna] ?? "";
 
     if (valorNovo === String(valorOriginal)) {
-      pendenciasEdicao.delete(chave);
+      aba.pendenciasEdicao.delete(chave);
     } else {
-      pendenciasEdicao.set(chave, { rowid, coluna, valorNovo, valorAntigo: valorOriginal });
+      aba.pendenciasEdicao.set(chave, { rowid, coluna, valorNovo, valorAntigo: valorOriginal });
     }
     atualizarBotaoPostChanges();
     atualizarTabela();
@@ -412,11 +614,15 @@ function iniciarEdicaoCelula(td, rowid, coluna, valorAtual) {
 }
 
 function atualizarBotaoPostChanges() {
+  const aba = abaAtiva();
   const postBtn = document.getElementById("resultado-post-btn");
-  if (postBtn) postBtn.disabled = pendenciasEdicao.size === 0;
+  if (postBtn) postBtn.disabled = aba.pendenciasEdicao.size === 0;
+  const rollbackBtn = document.getElementById("resultado-rollback-btn");
+  if (rollbackBtn) rollbackBtn.disabled = aba.pendenciasEdicao.size === 0;
 }
 
 async function enviarPostChanges(alteracoes) {
+  const aba = abaAtiva();
   mostrarErroPostChanges(null);
 
   try {
@@ -428,7 +634,7 @@ async function enviarPostChanges(alteracoes) {
       },
       body: JSON.stringify({
         tipo: "update-lote",
-        tabela: estadoResultado.tabela,
+        tabela: aba.estadoResultado.tabela,
         alteracoes: alteracoes.map(({ rowid, coluna, valorNovo }) => ({ rowid, coluna, valorNovo }))
       })
     });
@@ -438,8 +644,8 @@ async function enviarPostChanges(alteracoes) {
       throw new Error(dados.erro || `Resposta ${resposta.status}`);
     }
 
-    pendenciasEdicao.clear();
-    await executar(estadoResultado.sql, { pagina: estadoResultado.pagina });
+    aba.pendenciasEdicao.clear();
+    await executar(aba.estadoResultado.sql, { pagina: aba.estadoResultado.pagina });
   } catch (erro) {
     console.error("Erro ao gravar alterações:", erro);
     mostrarErroPostChanges(erro.message || "Não foi possível gravar as alterações.");
@@ -447,9 +653,10 @@ async function enviarPostChanges(alteracoes) {
 }
 
 function mostrarTabelaResultado(dados) {
+  const aba = abaAtiva();
   resultadoEl.innerHTML = "";
 
-  estadoResultado = {
+  aba.estadoResultado = {
     sql: dados.sql,
     colunas: dados.colunas || [],
     tiposColuna: dados.tiposColuna || {},
@@ -460,9 +667,9 @@ function mostrarTabelaResultado(dados) {
     tabela: dados.tabela || null,
   };
 
-  if (estadoResultado.linhas.length === 0 && estadoResultado.pagina === 1) {
+  if (aba.estadoResultado.linhas.length === 0 && aba.estadoResultado.pagina === 1) {
     mostrarMensagemResultado("0 linhas retornadas.", "status");
-    estadoResultado = null;
+    aba.estadoResultado = null;
     return;
   }
 
@@ -540,8 +747,9 @@ async function executar(sql, opcoes = {}) {
 
   try {
     const dados = await executarNoBackend(sql, opcoes);
+    const aba = abaAtiva();
     if (dados.tipo === "select") {
-      ordemColuna = null;
+      aba.ordemColuna = null;
       mostrarTabelaResultado({ ...dados, sql });
     } else {
       const n = dados.linhasAfetadas || 0;
@@ -614,19 +822,31 @@ function prosseguirComExecucao(sql) {
   }
 }
 
-executarBtn.addEventListener("click", () => {
-  const sql = editor.getValue().trim();
+// Ponto único de entrada pra rodar um SQL vindo do editor — usado pelo botão
+// "Executar" e pelo atalho F8. Trata os mesmos casos nos dois: SQL vazio,
+// pendências de edição não salvas, e a decisão SELECT/comando perigoso.
+function executarSqlDoEditor(sql) {
   if (!sql) {
     mostrarMensagemResultado("Escreva um comando SQL antes de executar.", "erro");
     return;
   }
 
-  if (pendenciasEdicao.size > 0) {
+  const aba = abaAtiva();
+
+  // Aba sem título próprio ainda (nasceu em branco, nunca foi renomeada por
+  // um script salvo) — usa o começo do SQL digitado, como no PL/SQL
+  // Developer, e atualiza a abinha.
+  if (!aba.titulo) {
+    aba.titulo = tituloCurtoDoSql(sql);
+    renderizarAbas();
+  }
+
+  if (aba.pendenciasEdicao.size > 0) {
     abrirConfirmacaoGenerica(
       "Há alterações não gravadas na página atual. Executar uma nova consulta descarta essas alterações (elas não são enviadas ao banco). Deseja continuar?",
-      [...pendenciasEdicao.values()].map((a) => `${a.coluna}: "${a.valorAntigo}" → "${a.valorNovo}"`).join("\n"),
+      [...aba.pendenciasEdicao.values()].map((a) => `${a.coluna}: "${a.valorAntigo}" → "${a.valorNovo}"`).join("\n"),
       () => {
-        pendenciasEdicao.clear();
+        aba.pendenciasEdicao.clear();
         prosseguirComExecucao(sql);
       }
     );
@@ -634,6 +854,19 @@ executarBtn.addEventListener("click", () => {
   }
 
   prosseguirComExecucao(sql);
+}
+
+// F8 executa a seleção atual do editor (como no PL/SQL Developer); sem nada
+// selecionado, roda o conteúdo inteiro — mesmo comportamento do botão
+// "Executar".
+function executarComF8() {
+  const selecao = editor.getSelection().trim();
+  const sql = selecao || editor.getValue().trim();
+  executarSqlDoEditor(sql);
+}
+
+executarBtn.addEventListener("click", () => {
+  executarSqlDoEditor(editor.getValue().trim());
 });
 
 // ── Painel "SQL Script" ──────────────────────────────────────────────────
@@ -683,7 +916,7 @@ function renderizarItensScript(scripts) {
     item.appendChild(descricao);
 
     item.addEventListener("click", () => {
-      editor.setValue(script.codigo || "");
+      abrirAba({ titulo: script.titulo || "Sem título", sqlTexto: script.codigo || "" });
       fecharScriptPainel();
     });
     scriptPainelLista.appendChild(item);
