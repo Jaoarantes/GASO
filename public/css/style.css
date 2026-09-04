@@ -2702,16 +2702,31 @@ select.publicacao-select {
 .sql-resultado {
   flex-shrink: 0;
   /* Altura em % da tela (nao em conta fixa de pixel) pra nunca zerar/sumir
-     em telas mais baixas, com um piso minimo garantido. */
+     em telas mais baixas, com um piso minimo garantido. O proprio elemento
+     nao rola mais (era isso que fazia a barra de ferramentas subir junto
+     com a tabela) — quem rola agora e so o wrapper da tabela, logo abaixo,
+     que fica sozinho dentro da area flexivel enquanto a barra fica fixa. */
+  display: flex;
+  flex-direction: column;
   min-height: 300px;
   max-height: 65vh;
-  overflow-y: auto;
+  overflow: hidden;
   margin-bottom: 24px;
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   padding: 16px;
   background-color: var(--cor-superficie);
   box-shadow: var(--sombra-card);
+}
+
+.sql-resultado-barra,
+.sql-resultado-erro-post {
+  flex-shrink: 0;
+}
+
+.sql-resultado-tabela-wrapper {
+  flex: 1;
+  overflow: auto;
 }
 
 .sql-resultado-vazio,
@@ -2773,13 +2788,14 @@ select.publicacao-select {
 
 .sql-resultado .colunas-tabela-wrapper {
   border: none;
-  /* Nao da pra declarar overflow-x:auto e overflow-y:visible ao mesmo tempo
-     nesse elemento — o navegador forca os dois eixos a ficarem "auto"
-     juntos (regra do proprio CSS, sem jeito de burlar). Por isso deixamos
-     os dois em "visible" aqui: quem rola (nos 2 eixos, inclusive o
-     horizontal da tabela larga) e o .sql-resultado logo acima, que e o
-     unico lugar onde o cabecalho fixo funciona direito. */
-  overflow: visible;
+  /* Quem rola (nos 2 eixos, inclusive o horizontal da tabela larga) e este
+     wrapper (.sql-resultado-tabela-wrapper, que ja define flex:1;
+     overflow:auto acima) — nao mais o .sql-resultado inteiro, que agora
+     fica com overflow:hidden pra manter a barra de ferramentas fixa fora
+     da area que rola. O cabecalho sticky da tabela (thead th, mais abaixo)
+     continua funcionando porque position:sticky so precisa de QUALQUER
+     ancestral com overflow != visible na cadeia — nao precisava ser
+     especificamente o .sql-resultado. */
 }
 
 .sql-resultado .colunas-tabela {
@@ -3503,12 +3519,7 @@ select.publicacao-select {
   max-height: none;
   border-radius: 0;
   padding: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.sql-resultado--expandido .sql-resultado-tabela-wrapper,
-.sql-resultado--expandido .colunas-tabela-wrapper {
-  flex: 1;
-  overflow: auto;
+  /* display:flex/flex-direction:column e o flex:1;overflow:auto do wrapper
+     da tabela ja vem de .sql-resultado/.sql-resultado-tabela-wrapper —
+     nao precisa repetir aqui. */
 }

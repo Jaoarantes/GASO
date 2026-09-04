@@ -1,6 +1,6 @@
 import { TABELAS_API_URL, TABELAS_API_KEY } from "../config/tabelas-api-config.js";
 import { supabase } from "../config/supabase-config.js";
-import { exportarExcel, exportarCsv, exportarSql } from "./novo-sql-export.js";
+import { exportarExcel, exportarCsv, exportarSql, formatarDataBR, pareceDataHora } from "./novo-sql-export.js";
 
 const ICONE_CADEADO_FECHADO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 const ICONE_CADEADO_ABERTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>';
@@ -98,6 +98,22 @@ function tituloCurtoDoSql(sql) {
 
 function chavePendencia(rowid, coluna) {
   return `${rowid}::${coluna}`;
+}
+
+// Converte o valor ISO-like que o backend devolve (ex: "2026-08-06
+// 00:00:00") para o formato AAAA-MM-DD que <input type="date"> exige.
+function dataParaInputDate(valorIso) {
+  const match = String(valorIso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? match[0] : "";
+}
+
+// Reconstrói o valor no formato que o backend espera (o mesmo ISO-like que
+// veio da grid) a partir do valor do <input type="date"> (AAAA-MM-DD) mais
+// a hora original preservada — editar só a data no calendário nunca deveria
+// zerar uma hora que já estava lá.
+function reconstruirValorData(novaDataIso, valorOriginal) {
+  const matchHora = String(valorOriginal).match(/(\d{2}:\d{2}:\d{2})/);
+  return matchHora ? `${novaDataIso} ${matchHora[1]}` : novaDataIso;
 }
 
 const editor = window.CodeMirror.fromTextArea(editorArea, {
@@ -624,10 +640,14 @@ function construirTabela() {
       const chave = chavePendencia(rowid, c);
       const pendencia = aba.pendenciasEdicao.get(chave);
       const valorAtual = pendencia ? pendencia.valorNovo : (linha[c] ?? "");
+      const ehColunaData = aba.estadoResultado.tiposColuna[c.toLowerCase()] === "data";
+      const valorExibido = ehColunaData && valorAtual !== ""
+        ? formatarDataBR(valorAtual, pareceDataHora(valorAtual))
+        : valorAtual;
 
       const span = document.createElement("span");
       span.className = "celula-valor";
-      span.textContent = valorAtual;
+      span.textContent = valorExibido;
       td.appendChild(span);
 
       if (pendencia) {
@@ -640,7 +660,7 @@ function construirTabela() {
         lapis.className = "celula-editar-btn";
         lapis.title = "Editar";
         lapis.innerHTML = ICONE_LAPIS;
-        lapis.addEventListener("click", () => iniciarEdicaoCelula(td, rowid, c, valorAtual));
+        lapis.addEventListener("click", () => iniciarEdicaoCelula(td, rowid, c, valorAtual, ehColunaData));
         td.appendChild(lapis);
       }
 
@@ -661,20 +681,33 @@ function atualizarTabela() {
   wrapper.appendChild(construirTabela());
 }
 
-function iniciarEdicaoCelula(td, rowid, coluna, valorAtual) {
+function iniciarEdicaoCelula(td, rowid, coluna, valorAtual, ehColunaData) {
   td.innerHTML = "";
 
   const input = document.createElement("input");
-  input.type = "text";
   input.className = "celula-editar-input";
-  input.value = valorAtual;
+
+  if (ehColunaData) {
+    // <input type="date"> só aceita/exibe AAAA-MM-DD (o navegador cuida do
+    // calendário e do formato de exibição local — em pt-BR já vem como
+    // DD/MM/AAAA sozinho). A hora original (se houver) é preservada por
+    // baixo e recolocada ao confirmar, em reconstruirValorData.
+    input.type = "date";
+    input.value = dataParaInputDate(valorAtual);
+  } else {
+    input.type = "text";
+    input.value = valorAtual;
+  }
+
   td.appendChild(input);
   input.focus();
-  input.select();
+  if (!ehColunaData) input.select();
 
   const confirmar = () => {
     const aba = abaAtiva();
-    const valorNovo = input.value;
+    const valorNovo = ehColunaData
+      ? reconstruirValorData(input.value, valorAtual)
+      : input.value;
     const chave = chavePendencia(rowid, coluna);
     const valorOriginal = linhasExibidas.find((l) => l.gaso_rowid === rowid)?.[coluna] ?? "";
 
@@ -691,13 +724,17 @@ function iniciarEdicaoCelula(td, rowid, coluna, valorAtual) {
     atualizarTabela();
   };
 
-  input.addEventListener("blur", confirmar);
+  // <input type="date"> usa "change" pra confirmar (dispara ao fechar o
+  // calendário com uma data escolhida); os demais tipos usam "blur", como
+  // já era o comportamento existente.
+  const eventoConfirmar = ehColunaData ? "change" : "blur";
+  input.addEventListener(eventoConfirmar, confirmar);
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       input.blur();
     } else if (event.key === "Escape") {
-      input.removeEventListener("blur", confirmar);
+      input.removeEventListener(eventoConfirmar, confirmar);
       cancelar();
     }
   });
