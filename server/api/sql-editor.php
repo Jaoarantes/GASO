@@ -140,6 +140,23 @@ if ($sql === '') {
     responder_erro(400, 'Informe um comando SQL.');
 }
 
+// PL/SQL Developer aceita um ";" no final do statement (o próprio cliente
+// remove antes de enviar ao Oracle via OCI) — copiar um script de lá cola
+// esse ";" no editor. Aqui o SQL vai direto ao ODBC, e para SELECT ainda é
+// embrulhado em subquery ("SELECT t.*, ... FROM (<sql>) t"), então um ";"
+// sobrando vira um ";" dentro dos parênteses e o Oracle recusa com
+// ORA-00907 (missing right parenthesis).
+//
+// Blocos PL/SQL anônimos (BEGIN...END; / DECLARE...END;) são a exceção: o
+// ";" final faz parte da sintaxe do bloco e removê-lo quebraria o comando
+// — esses continuam intocados, só o ";" de um statement SQL comum é
+// removido aqui, uma única vez, no ponto de entrada usado tanto pelo fluxo
+// de SELECT quanto pelo de comando.
+$ehBlocoPlsql = (bool)preg_match('/^\s*(BEGIN|DECLARE)\b/i', $sql);
+if (!$ehBlocoPlsql) {
+    $sql = (string)preg_replace('/;\s*$/', '', $sql);
+}
+
 function normalizar_lista(array $linhas): array {
     return array_map(
         fn(array $linha): array => array_change_key_case($linha, CASE_LOWER),
