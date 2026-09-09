@@ -2924,6 +2924,14 @@ select.publicacao-select {
   color: #ffffff;
 }
 
+.sql-resultado-contagem {
+  flex: 1;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
 .sql-resultado-export-wrapper {
   position: relative;
   margin-left: auto;

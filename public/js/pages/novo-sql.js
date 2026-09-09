@@ -356,6 +356,22 @@ function mostrarErroPostChanges(texto) {
   }
 }
 
+// "100 de 1000 linhas" enquanto ainda há mais páginas por carregar, ou só
+// "1000 linhas" quando o resultado já está completo na tela (query pequena
+// que coube numa página só, ou depois de "Carregar todas as linhas").
+function textoContagemLinhas(estadoResultado) {
+  const exibidas = estadoResultado.linhas.length;
+  const total = estadoResultado.totalLinhas;
+
+  if (total === null) {
+    return `${exibidas} linha(s)`;
+  }
+  if (estadoResultado.temProximaPagina || exibidas < total) {
+    return `${exibidas} de ${total} linha(s)`;
+  }
+  return `${total} linha(s)`;
+}
+
 function criarBarraFerramentas() {
   const aba = abaAtiva();
   const barra = document.createElement("div");
@@ -386,8 +402,14 @@ function criarBarraFerramentas() {
   ultimaBtn.type = "button";
   ultimaBtn.className = "painel__icone-btn";
   ultimaBtn.id = "resultado-ultima-btn";
-  ultimaBtn.title = "Última página";
+  ultimaBtn.title = "Carregar todas as linhas";
   ultimaBtn.innerHTML = ICONE_ULTIMA_PAGINA;
+  ultimaBtn.disabled = !aba.estadoResultado.temProximaPagina;
+
+  const contagemEl = document.createElement("span");
+  contagemEl.className = "sql-resultado-contagem";
+  contagemEl.id = "resultado-contagem";
+  contagemEl.textContent = textoContagemLinhas(aba.estadoResultado);
 
   const postBtn = document.createElement("button");
   postBtn.type = "button";
@@ -484,6 +506,7 @@ function criarBarraFerramentas() {
   barra.appendChild(ultimaBtn);
   barra.appendChild(postBtn);
   barra.appendChild(rollbackBtn);
+  barra.appendChild(contagemEl);
   barra.appendChild(exportWrapper);
   barra.appendChild(expandirBtn);
 
@@ -789,6 +812,7 @@ function mostrarTabelaResultado(dados) {
     tiposColuna: dados.tiposColuna || {},
     linhas: dados.linhas || [],
     pagina: dados.pagina || 1,
+    totalLinhas: typeof dados.totalLinhas === "number" ? dados.totalLinhas : null,
     temProximaPagina: Boolean(dados.temProximaPagina),
     editavel: Boolean(dados.editavel),
     tabela: dados.tabela || null,

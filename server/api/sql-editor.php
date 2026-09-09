@@ -319,33 +319,43 @@ try {
             ? "SELECT t.*, ROWIDTOCHAR(t.ROWID) AS GASO_ROWID FROM ({$sqlBase}) t"
             : $sqlBase;
 
-        $ultimaPagina = (bool)($corpo['ultimaPagina'] ?? false);
+        // Total de linhas do resultado, sempre calculado — usado pra exibir
+        // a contagem na barra de resultado (ex: "100 de 1000 linhas"),
+        // independente de qual página está sendo buscada.
+        $stmtCount = $pdo->query("SELECT COUNT(*) AS total FROM ({$sqlComRowid})");
+        $totalLinhas = (int)$stmtCount->fetchColumn();
+
+        // "ultimaPagina" carrega TODAS as linhas do resultado de uma vez
+        // (sem paginar em blocos de TAMANHO_PAGINA) — não é mais "ir para a
+        // última página de 100", e sim "trazer tudo".
+        $carregarTudo = (bool)($corpo['ultimaPagina'] ?? false);
         $pagina = max(1, (int)($corpo['pagina'] ?? 1));
 
-        if ($ultimaPagina) {
-            $stmtCount = $pdo->query("SELECT COUNT(*) AS total FROM ({$sqlComRowid})");
-            $total = (int)$stmtCount->fetchColumn();
-            $pagina = $total === 0 ? 1 : (int)ceil($total / TAMANHO_PAGINA);
+        if ($carregarTudo) {
+            $stmt = $pdo->prepare("SELECT * FROM ({$sqlComRowid})");
+            $stmt->execute();
+            $linhasBrutas = normalizar_lista($stmt->fetchAll());
+            $temProximaPagina = false;
+        } else {
+            $offset = ($pagina - 1) * TAMANHO_PAGINA;
+            $tamanhoBusca = TAMANHO_PAGINA + 1;
+
+            // OFFSET/FETCH NEXT como bind parameter (:offset/:tamanho) causa
+            // ORA-24374 ("define not done before fetch") no driver PDO ODBC
+            // usado nesta VPS — confirmado que o mesmo SQL com esses valores
+            // literais roda normalmente direto no Oracle. $offset/$tamanhoBusca
+            // são sempre inteiros calculados internamente (nunca vêm de input
+            // livre do usuário), então interpolar aqui é seguro.
+            $sqlPaginado = "SELECT * FROM ({$sqlComRowid})"
+                         . " OFFSET {$offset} ROWS FETCH NEXT {$tamanhoBusca} ROWS ONLY";
+
+            $stmt = $pdo->prepare($sqlPaginado);
+            $stmt->execute();
+            $linhasBrutas = normalizar_lista($stmt->fetchAll());
+
+            $temProximaPagina = count($linhasBrutas) > TAMANHO_PAGINA;
+            $linhasBrutas = array_slice($linhasBrutas, 0, TAMANHO_PAGINA);
         }
-
-        $offset = ($pagina - 1) * TAMANHO_PAGINA;
-        $tamanhoBusca = TAMANHO_PAGINA + 1;
-
-        // OFFSET/FETCH NEXT como bind parameter (:offset/:tamanho) causa
-        // ORA-24374 ("define not done before fetch") no driver PDO ODBC
-        // usado nesta VPS — confirmado que o mesmo SQL com esses valores
-        // literais roda normalmente direto no Oracle. $offset/$tamanhoBusca
-        // são sempre inteiros calculados internamente (nunca vêm de input
-        // livre do usuário), então interpolar aqui é seguro.
-        $sqlPaginado = "SELECT * FROM ({$sqlComRowid})"
-                     . " OFFSET {$offset} ROWS FETCH NEXT {$tamanhoBusca} ROWS ONLY";
-
-        $stmt = $pdo->prepare($sqlPaginado);
-        $stmt->execute();
-        $linhasBrutas = normalizar_lista($stmt->fetchAll());
-
-        $temProximaPagina = count($linhasBrutas) > TAMANHO_PAGINA;
-        $linhasBrutas = array_slice($linhasBrutas, 0, TAMANHO_PAGINA);
 
         // "colunas" nunca inclui a pseudo-coluna reservada gaso_rowid.
         $colunas = $linhasBrutas === []
@@ -373,6 +383,7 @@ try {
             'tiposColuna'      => $tiposColunaFiltrado,
             'linhas'           => $linhasBrutas,
             'pagina'           => $pagina,
+            'totalLinhas'      => $totalLinhas,
             'temProximaPagina' => $temProximaPagina,
             'editavel'         => $tabelaEditavel !== null,
             'tabela'           => $tabelaEditavel,
