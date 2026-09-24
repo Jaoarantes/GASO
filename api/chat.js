@@ -39,7 +39,17 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
 const BUCKET = "documentos-erp";
-const MODELO = "gemini-3.6-flash";
+
+// Modelos tentados em ordem: o primeiro e o padrao, os seguintes sao
+// alternativas para quando o Google recusa o anterior por sobrecarga (503)
+// ou cota (429). No nivel gratuito cada modelo tem capacidade e cota
+// proprias, entao cair pro proximo costuma responder na hora — ao contrario
+// de insistir no mesmo modelo, que ja disse que nao tem capacidade.
+const MODELOS = [
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.5-flash"
+];
 
 // Nome de cada documento (chave no cache) -> nome exato do arquivo no bucket.
 // Se voce subir os .docx com nomes diferentes, ajusta aqui.
@@ -156,13 +166,13 @@ function mensagemErroAmigavel(erro) {
   const status = erro?.status;
 
   if (status === 429) {
-    return "O limite de uso gratuito do Gemini foi atingido nesse minuto. Espera um pouco e tenta de novo.";
+    return "A cota gratuita do Gemini acabou por agora — tentei todos os modelos disponíveis e todos recusaram. Costuma liberar no dia seguinte.";
   }
   if (status === 503) {
-    return "O Gemini está sobrecarregado no momento (instabilidade do lado do Google, não é nada daqui). Já tentei de novo automaticamente algumas vezes e continua fora — tenta de novo em alguns minutos.";
+    return "Todos os modelos do Gemini que eu tento estão sem capacidade neste momento (limitação do lado do Google, no plano gratuito). Tenta de novo em alguns minutos.";
   }
   if (typeof status === "number" && status >= 500) {
-    return `O servidor do Gemini teve um problema (erro ${status}). Tenta de novo em instantes.`;
+    return `O servidor do Gemini teve um problema (erro ${status}) em todos os modelos que tentei. Tenta de novo em instantes.`;
   }
   if (typeof erro?.message === "string" && erro.message.startsWith("Falha ao baixar")) {
     return "Não consegui acessar um dos documentos do ERP agora. Tenta de novo em instantes.";
@@ -171,23 +181,49 @@ function mensagemErroAmigavel(erro) {
   return "Não foi possível responder agora.";
 }
 
-function esperar(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// Sobrecarga (503), cota estourada (429), modelo inexistente (404) e erros
+// internos (5xx) sao problemas DAQUELE modelo — vale tentar outro. Ja um 400
+// (requisicao malformada) ou 401/403 (chave) falharia igual em qualquer
+// modelo, entao nesses casos nao adianta insistir.
+function valeTentarOutroModelo(erro) {
+  const status = erro?.status;
+  if (status === 429 || status === 404) return true;
+  return typeof status === "number" && status >= 500;
 }
 
-// Tenta de novo automaticamente quando o Gemini devolve 503 (sobrecarregado
-// no momento) — costuma ser um pico curto que passa em poucos segundos.
-// Nao tenta de novo em outros erros (ex: 429 de cota, que so pioraria).
-async function enviarComRetry(chat, partes, tentativas = 3) {
-  for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+// Percorre MODELOS em ordem e devolve a resposta do primeiro que aceitar.
+// Sem espera entre as tentativas de proposito: o Google recusa na hora
+// quando esta sem capacidade, entao esperar so atrasa a resposta de erro
+// sem aumentar a chance de sucesso (ja testado — insistir no mesmo modelo
+// falhava as 3 vezes).
+async function enviarComFallback(genAI, historicoChat, partes) {
+  let ultimoErro = null;
+
+  for (const modelo of MODELOS) {
     try {
-      return await chat.sendMessage(partes);
+      const model = genAI.getGenerativeModel({
+        model: modelo,
+        generationConfig: {
+          temperature: 0.25,
+          maxOutputTokens: 8192
+        }
+      });
+
+      const chat = model.startChat({ history: historicoChat });
+      const resultado = await chat.sendMessage(partes);
+
+      if (modelo !== MODELOS[0]) {
+        console.warn(`Chat respondido pelo modelo alternativo "${modelo}" — o principal estava indisponivel.`);
+      }
+      return resultado;
     } catch (erro) {
-      const ultimaTentativa = tentativa === tentativas;
-      if (erro?.status !== 503 || ultimaTentativa) throw erro;
-      await esperar(tentativa * 2000); // 2s, depois 4s
+      ultimoErro = erro;
+      if (!valeTentarOutroModelo(erro)) throw erro;
+      console.warn(`Modelo "${modelo}" indisponivel (status ${erro?.status}); tentando o proximo.`);
     }
   }
+
+  throw ultimoErro;
 }
 
 async function extrairTextoDocx(buffer) {
@@ -289,14 +325,6 @@ export default async function handler(req, res) {
       buscarSolucoesRelevantes(supabase, pergunta)
     ]);
 
-    const model = genAI.getGenerativeModel({
-      model: MODELO,
-      generationConfig: {
-        temperature: 0.25,
-        maxOutputTokens: 8192
-      }
-    });
-
     const partesArquivos = arquivos.map((a) => ({
       fileData: { mimeType: a.mimeType, fileUri: a.uri }
     }));
@@ -325,22 +353,20 @@ export default async function handler(req, res) {
       + " escrita por alguém da equipe descrevendo um caso real, então normalmente é mais precisa"
       + " e específica que os documentos gerais do ERP. Cite o título da solução usada.";
 
-    const chat = model.startChat({
-      history: [
-        { role: "user", parts: [...partesArquivos, { text: instrucaoSistema }] },
-        { role: "model", parts: [{ text: "Entendido. Revisei os 5 documentos do ERP e vou manter o contexto da nossa conversa. Pode perguntar." }] },
-        ...historico.flatMap((t) => [
-          { role: "user", parts: [{ text: t.pergunta }] },
-          { role: "model", parts: [{ text: t.resposta }] }
-        ])
-      ]
-    });
+    const historicoChat = [
+      { role: "user", parts: [...partesArquivos, { text: instrucaoSistema }] },
+      { role: "model", parts: [{ text: "Entendido. Revisei os 5 documentos do ERP e vou manter o contexto da nossa conversa. Pode perguntar." }] },
+      ...historico.flatMap((t) => [
+        { role: "user", parts: [{ text: t.pergunta }] },
+        { role: "model", parts: [{ text: t.resposta }] }
+      ])
+    ];
 
     const partesSolucoes = solucoesRelevantes.length
       ? [{ text: "=== SOLUÇÕES JÁ CADASTRADAS NO SITE RELACIONADAS A ESSA PERGUNTA ===\n\n" + solucoesRelevantes.join("\n\n---\n\n") }]
       : [];
 
-    const resultado = await enviarComRetry(chat, [
+    const resultado = await enviarComFallback(genAI, historicoChat, [
       ...partesImagem,
       ...partesSolucoes,
       {
