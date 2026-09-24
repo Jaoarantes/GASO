@@ -33,7 +33,10 @@ function lerHistorico() {
 // em cada nova pergunta pra o Jarvis manter o contexto (nao reenvia imagens
 // antigas, so o texto). Reconstruido a partir do localStorage ao carregar.
 let turnosContexto = [];
-const TURNOS_CONTEXTO_LIMITE = 12;
+// Alinhado com o limite do servidor (api/chat.js): o historico e reenviado
+// inteiro a cada mensagem, entao mandar demais estoura o teto de tokens por
+// minuto do Gemini gratuito.
+const TURNOS_CONTEXTO_LIMITE = 4;
 
 function construirTurnosContexto(historico) {
   const turnos = [];
@@ -387,7 +390,9 @@ async function enviarPergunta(pergunta) {
     const dados = await resposta.json();
 
     if (!resposta.ok || dados.erro) {
-      const mensagemErro = dados.erro || "Não foi possível responder agora.";
+      const mensagemErro = dados.detalhe
+        ? `${dados.erro || "Não foi possível responder agora."}\n\nDetalhe técnico: ${dados.detalhe}`
+        : (dados.erro || "Não foi possível responder agora.");
       linha.classList.add("chat-mensagem--erro");
       bolha.textContent = mensagemErro;
       salvarNoHistorico({ papel: "erro", texto: mensagemErro });

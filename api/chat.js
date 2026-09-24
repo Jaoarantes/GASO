@@ -181,6 +181,15 @@ function mensagemErroAmigavel(erro) {
   return "Não foi possível responder agora.";
 }
 
+// O motivo tecnico cru (o que o Google respondeu de fato), cortado pra caber
+// na tela. Vai junto da mensagem amigavel pra dar pra diagnosticar sem abrir
+// o painel da Vercel.
+function detalheTecnico(erro) {
+  const bruto = typeof erro?.message === "string" ? erro.message : String(erro ?? "");
+  const limpo = bruto.replace(/\s+/g, " ").trim();
+  return limpo.length > 300 ? `${limpo.slice(0, 300)}...` : limpo;
+}
+
 // Sobrecarga (503), cota estourada (429), modelo inexistente (404) e erros
 // internos (5xx) sao problemas DAQUELE modelo — vale tentar outro. Ja um 400
 // (requisicao malformada) ou 401/403 (chave) falharia igual em qualquer
@@ -196,6 +205,22 @@ function valeTentarOutroModelo(erro) {
 // quando esta sem capacidade, entao esperar so atrasa a resposta de erro
 // sem aumentar a chance de sucesso (ja testado — insistir no mesmo modelo
 // falhava as 3 vezes).
+// Mede quantos tokens de entrada a requisicao realmente tem. O limite do
+// nivel gratuito e por MINUTO (250 mil), entao se uma unica mensagem ja
+// chegar perto disso ela nunca passa — e o Google responde 429 ou 503 sem
+// deixar claro que o problema e tamanho, nao instabilidade.
+// Best-effort: se a contagem falhar, segue o fluxo normalmente.
+async function medirTokensEntrada(model, historicoChat, partes) {
+  try {
+    const { totalTokens } = await model.countTokens({
+      contents: [...historicoChat, { role: "user", parts: partes }]
+    });
+    return totalTokens;
+  } catch {
+    return null;
+  }
+}
+
 async function enviarComFallback(genAI, historicoChat, partes) {
   let ultimoErro = null;
 
@@ -208,6 +233,13 @@ async function enviarComFallback(genAI, historicoChat, partes) {
           maxOutputTokens: 8192
         }
       });
+
+      if (modelo === MODELOS[0]) {
+        const tokens = await medirTokensEntrada(model, historicoChat, partes);
+        if (tokens !== null) {
+          console.log(`[chat] Tokens de entrada desta mensagem: ${tokens} (limite gratuito: 250000 por minuto).`);
+        }
+      }
 
       const chat = model.startChat({ history: historicoChat });
       const resultado = await chat.sendMessage(partes);
@@ -254,6 +286,7 @@ async function obterArquivoGemini(fileManager, supabase, doc) {
 
   const buffer = Buffer.from(await arquivo.arrayBuffer());
   const texto = await extrairTextoDocx(buffer);
+  console.log(`[chat] Documento "${doc.nome}": ${texto.length} caracteres extraidos (~${Math.round(texto.length / 4)} tokens).`);
 
   const caminhoTemp = join(tmpdir(), `${doc.nome}.txt`);
   await writeFile(caminhoTemp, texto, "utf8");
@@ -307,12 +340,28 @@ export default async function handler(req, res) {
   }
 
   // Historico enviado pelo navegador (perguntas/respostas anteriores dessa
-  // mesma conversa), pra o Jarvis lembrar do que ja foi falado. Limita a 12
-  // trocas mais recentes pra nao deixar a requisicao gigante.
+  // mesma conversa), pra o Jarvis lembrar do que ja foi falado.
+  //
+  // Limitado com folga de proposito: cada resposta antiga pode ter milhares
+  // de tokens, e o historico inteiro e REENVIADO em toda mensagem nova. Com
+  // 12 trocas completas a conversa ia inchando ate a requisicao estourar o
+  // teto de tokens por minuto do nivel gratuito — o que o Google recusa com
+  // 429 ou 503, sem dizer que o motivo e tamanho. 4 trocas, com as respostas
+  // resumidas, dao contexto suficiente pra perguntas de continuidade
+  // ("e o segundo passo?") sem inflar a requisicao.
+  const LIMITE_TROCAS = 4;
+  const LIMITE_CARACTERES_RESPOSTA = 1200;
+
   const historico = Array.isArray(req.body?.historico)
     ? req.body.historico
         .filter((t) => t && typeof t.pergunta === "string" && typeof t.resposta === "string")
-        .slice(-12)
+        .slice(-LIMITE_TROCAS)
+        .map((t) => ({
+          pergunta: t.pergunta,
+          resposta: t.resposta.length > LIMITE_CARACTERES_RESPOSTA
+            ? `${t.resposta.slice(0, LIMITE_CARACTERES_RESPOSTA)}...`
+            : t.resposta
+        }))
     : [];
 
   try {
@@ -381,6 +430,9 @@ export default async function handler(req, res) {
     res.status(200).json({ resposta });
   } catch (erro) {
     console.error("Erro no chat:", erro);
-    res.status(500).json({ erro: mensagemErroAmigavel(erro) });
+    res.status(500).json({
+      erro: mensagemErroAmigavel(erro),
+      detalhe: detalheTecnico(erro)
+    });
   }
 }

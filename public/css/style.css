@@ -3285,6 +3285,10 @@ select.publicacao-select {
 .chat-mensagem--erro .chat-bolha {
   border-color: var(--cor-erro);
   color: var(--cor-erro);
+  /* A mensagem de erro traz o detalhe tecnico numa segunda linha, e ela e
+     inserida como texto puro (textContent) — sem isso a quebra some. */
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 .chat-bolha p {
