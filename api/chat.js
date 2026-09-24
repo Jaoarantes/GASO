@@ -1,7 +1,10 @@
 // api/chat.js — endpoint do chat com IA (function serverless da Vercel, Node.js).
 //
 // Fluxo:
-//   1. Pra cada um dos 5 documentos do ERP, confere se ja tem uma referencia
+//   1. Escolhe, pelas palavras da pergunta, de qual dos 5 modulos do ERP e a
+//      duvida, e trabalha so com o documento daquele modulo (mandar os 5
+//      somava ~800 mil tokens, mais que o triplo do teto do nivel gratuito).
+//      Pra esse documento, confere se ja tem uma referencia
 //      valida no Supabase (tabela chat_arquivos). Se nao tiver (ou tiver
 //      vencido), baixa o .docx do Supabase Storage, extrai o texto (mammoth)
 //      e sobe esse texto pro Gemini File API — guarda a referencia devolvida
@@ -53,13 +56,70 @@ const MODELOS = [
 
 // Nome de cada documento (chave no cache) -> nome exato do arquivo no bucket.
 // Se voce subir os .docx com nomes diferentes, ajusta aqui.
+//
+// "palavras" sao os termos que indicam que a pergunta e daquele modulo. Os
+// 5 documentos somados dao ~800 mil tokens, mais que o triplo do teto de 250
+// mil por minuto do nivel gratuito — mandar todos era o motivo de TODA
+// mensagem ser recusada. Entao so o modulo relevante a pergunta e enviado.
 const DOCUMENTOS = [
-  { nome: "financeiro", arquivo: "SISTEMA ERP - FINANCEIRO.docx" },
-  { nome: "materiais", arquivo: "SISTEMA ERP - MATERIAIS.docx" },
-  { nome: "compras", arquivo: "SISTEMA ERP - COMPRAS.docx" },
-  { nome: "vendas", arquivo: "SISTEMA ERP - VENDAS.docx" },
-  { nome: "configuracoes", arquivo: "SISTEMA ERP - CONFIGURACOES.docx" }
+  {
+    nome: "financeiro",
+    arquivo: "SISTEMA ERP - FINANCEIRO.docx",
+    palavras: ["financeiro", "titulo", "titulos", "boleto", "banco", "bancaria", "pagar", "receber", "pagamento", "recebimento", "juros", "multa", "caixa", "conciliacao", "baixa", "cobranca", "remessa", "retorno", "cheque", "duplicata", "fluxo"]
+  },
+  {
+    nome: "materiais",
+    arquivo: "SISTEMA ERP - MATERIAIS.docx",
+    palavras: ["material", "materiais", "estoque", "produto", "produtos", "inventario", "saldo", "deposito", "almoxarifado", "movimentacao", "transferencia", "lote", "unidade", "embalagem", "custo", "curva"]
+  },
+  {
+    nome: "compras",
+    arquivo: "SISTEMA ERP - COMPRAS.docx",
+    palavras: ["compra", "compras", "fornecedor", "fornecedores", "cotacao", "cotacoes", "ordem de compra", "requisicao", "entrada", "recebimento de mercadoria", "nota de entrada", "xml", "importacao"]
+  },
+  {
+    nome: "vendas",
+    arquivo: "SISTEMA ERP - VENDAS.docx",
+    palavras: ["venda", "vendas", "pedido", "pedidos", "cliente", "clientes", "orcamento", "faturamento", "faturar", "nota fiscal", "nfe", "nfce", "cupom", "representante", "comissao", "tabela de preco", "desconto", "entrega", "transportadora", "romaneio", "mapa"]
+  },
+  {
+    nome: "configuracoes",
+    arquivo: "SISTEMA ERP - CONFIGURACOES.docx",
+    palavras: ["configuracao", "configuracoes", "configurador", "parametro", "parametros", "cadastro", "cadastrar", "usuario", "usuarios", "permissao", "permissoes", "acesso", "empresa", "unidade", "filial", "pessoa", "pessoas", "grupo", "menu", "relatorio"]
+  }
 ];
+
+// Quantos documentos vao junto com a pergunta. 1 de proposito: cada um tem
+// ~130 a 250 mil tokens, e dois ja estourariam o teto de 250 mil por minuto.
+const MAX_DOCUMENTOS_POR_PERGUNTA = 1;
+
+// Escolhe o(s) documento(s) do modulo que a pergunta parece ser. Usa a mesma
+// normalizacao sem acento do resto do projeto, entao "configuração" casa com
+// "configuracao". Se nada casar, cai no primeiro da lista — melhor responder
+// com o modulo errado (e o Jarvis avisar) do que nao responder nada.
+function selecionarDocumentos(pergunta) {
+  const texto = normalizarTextoBusca(pergunta);
+
+  const pontuados = DOCUMENTOS.map((doc) => {
+    const pontuacao = doc.palavras.reduce(
+      (soma, palavra) => (texto.includes(palavra) ? soma + 1 : soma),
+      0
+    );
+    return { doc, pontuacao };
+  });
+
+  const comMatch = pontuados
+    .filter((item) => item.pontuacao > 0)
+    .sort((a, b) => b.pontuacao - a.pontuacao);
+
+  const escolhidos = comMatch.length > 0
+    ? comMatch.slice(0, MAX_DOCUMENTOS_POR_PERGUNTA).map((item) => item.doc)
+    : [DOCUMENTOS[0]];
+
+  console.log(`[chat] Modulo(s) selecionado(s) para esta pergunta: ${escolhidos.map((d) => d.nome).join(", ")}${comMatch.length === 0 ? " (nenhuma palavra-chave casou — usando o padrao)" : ""}.`);
+
+  return escolhidos;
+}
 
 function supabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -369,8 +429,10 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const fileManager = new GoogleAIFileManager(GEMINI_API_KEY);
 
+    const documentosEscolhidos = selecionarDocumentos(pergunta);
+
     const [arquivos, solucoesRelevantes] = await Promise.all([
-      Promise.all(DOCUMENTOS.map((doc) => obterArquivoGemini(fileManager, supabase, doc))),
+      Promise.all(documentosEscolhidos.map((doc) => obterArquivoGemini(fileManager, supabase, doc))),
       buscarSolucoesRelevantes(supabase, pergunta)
     ]);
 
@@ -382,12 +444,19 @@ export default async function handler(req, res) {
       inlineData: { mimeType: img.mimeType, data: img.data }
     }));
 
+    const nomesModulos = documentosEscolhidos.map((d) => d.nome).join(", ");
+
     const instrucaoSistema = "Você é o Jarvis, assistente de suporte da Base de Soluções da Gasômetro"
       + " Madeiras, especialista no ERP NL Gestão."
-      + " Antes de responder, revise com atenção o conteúdo completo dos 5 documentos anexados"
-      + " (Financeiro, Materiais, Compras, Vendas, Configurações) — não se baseie só no início"
-      + " de cada um, procure em todos, inclusive quando a resposta exigir cruzar informação"
-      + " de mais de um documento ou de mais de uma seção do mesmo documento."
+      + ` Em anexo está a documentação do módulo: ${nomesModulos}. Ela foi escolhida`
+      + " automaticamente pelas palavras da pergunta, entre os 5 módulos existentes"
+      + " (Financeiro, Materiais, Compras, Vendas, Configurações)."
+      + " Antes de responder, revise com atenção o conteúdo completo do documento anexado —"
+      + " não se baseie só no início dele, procure no documento todo, inclusive quando a"
+      + " resposta exigir cruzar informação de mais de uma seção."
+      + " Se ficar claro que a resposta pertence a um módulo diferente do que foi anexado,"
+      + " diga isso ao usuário e peça que ele cite o módulo na pergunta (ex.: \"como faço X"
+      + " em Compras?\"), em vez de tentar adivinhar."
       + " Responda em português, com a resposta mais completa e precisa possível: inclua o"
       + " caminho de navegação exato, números de página/objeto, nomes de campos e o passo a"
       + " passo, sempre que essas informações existirem nos documentos. Se houver mais de uma"
@@ -404,7 +473,7 @@ export default async function handler(req, res) {
 
     const historicoChat = [
       { role: "user", parts: [...partesArquivos, { text: instrucaoSistema }] },
-      { role: "model", parts: [{ text: "Entendido. Revisei os 5 documentos do ERP e vou manter o contexto da nossa conversa. Pode perguntar." }] },
+      { role: "model", parts: [{ text: `Entendido. Revisei a documentação do módulo ${nomesModulos} e vou manter o contexto da nossa conversa. Pode perguntar.` }] },
       ...historico.flatMap((t) => [
         { role: "user", parts: [{ text: t.pergunta }] },
         { role: "model", parts: [{ text: t.resposta }] }
