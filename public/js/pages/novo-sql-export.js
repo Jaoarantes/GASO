@@ -28,11 +28,18 @@ function valorOuVazio(linha, coluna) {
   return v === null || v === undefined ? "" : v;
 }
 
-function pareceDataHora(valor) {
-  return typeof valor === "string" && /\d{2}:\d{2}:\d{2}/.test(valor);
+// Exportadas porque novo-sql.js (grid/edição de célula) reaproveita o mesmo
+// formato de data — evita duplicar a lógica de parse do formato ISO-like
+// que o backend devolve.
+export function pareceDataHora(valor) {
+  // "00:00:00" no Oracle normalmente significa "sem hora definida" (data
+  // pura) — só trata como hora real quando é diferente disso.
+  if (typeof valor !== "string") return false;
+  const match = valor.match(/(\d{2}:\d{2}:\d{2})/);
+  return !!match && match[1] !== "00:00:00";
 }
 
-function formatarDataBR(valor, comHora) {
+export function formatarDataBR(valor, comHora) {
   // Valores de data vêm do backend como string ISO-like (ex: "2017-03-29"
   // ou "2017-03-29 15:18:15") — normaliza pra DD/MM/YYYY[ HH24:MI:SS].
   const match = String(valor).match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?/);
